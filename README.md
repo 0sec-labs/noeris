@@ -63,6 +63,10 @@ noeris.patch(model)  # Drop-in RMSNorm + gated MLP activation patches.
 # HuggingFace attention patching is not wired into noeris.patch() yet.
 ```
 
+Contributor setup has separate CPU-only and Linux CUDA paths. Start with
+[`CONTRIBUTING.md`](CONTRIBUTING.md) if you are on macOS arm64, working without
+an NVIDIA GPU, or trying to run local CI parity.
+
 ### Current public patch coverage
 
 `noeris.patch()` currently wires two module-level optimizations into supported
@@ -90,7 +94,8 @@ python -m research_engine.cli triton-iterate \
 
 ### Local CI parity runner
 
-Run the same core checks used in GitHub CI from repo root:
+Run the same core checks used in GitHub CI from repo root on a Linux CUDA-capable
+development environment:
 
 ```bash
 ./scripts/ci_local.sh
@@ -105,6 +110,10 @@ PYTHON_BIN=python3.11 ./scripts/ci_local.sh
 This runs unit tests, public artifact reference checks, two `matmul-speedup`
 benchmark runs, history export, and the history regression gate with
 `--fail-on-missing`.
+
+On macOS arm64 or CPU-only machines, use the source-tree setup in
+[`CONTRIBUTING.md`](CONTRIBUTING.md) instead of `pip install -e .`; Triton does
+not ship a native macOS arm64 wheel in the checked-in lockfile.
 
 ### Free GPU validation (no paid compute)
 
