@@ -22,3 +22,6 @@ The autonomous discovery system behind Noeris's kernel optimizations.
 - `adaptive_router.py` — meta-bandit selector routing
 - `world_model.py` — hypothesis tracking
 - `store.py` — persistent config database
+
+Operator surface definitions are documented in
+[`OPERATOR_SURFACE.md`](OPERATOR_SURFACE.md).

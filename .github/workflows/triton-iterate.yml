@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
     inputs:
       operator:
-        description: "Operator to search (matmul, rmsnorm, softmax, layernorm, cross_entropy, all)"
+        description: "Operator label for auto-chain/concurrency. Manual runs execute the default matrix documented in docs/system/OPERATOR_SURFACE.md."
         required: false
         default: "all"
       gpu:
@@ -52,6 +52,8 @@ jobs:
       fail-fast: false
       max-parallel: 3
       matrix:
+        # Default workflow matrix is narrower than the generic CLI-searchable
+        # surface. Keep this in sync with TRITON_ITERATE_WORKFLOW_OPERATORS.
         operator: [matmul, rmsnorm, softmax, layernorm, cross_entropy, attention, rotary, geglu]
     env:
       AZURE_OPENAI_API_KEY: ${{ secrets.AZURE_OPENAI_API_KEY }}
