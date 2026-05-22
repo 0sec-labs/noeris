@@ -57,3 +57,7 @@ Default CI proves the system contract.
 Scheduled benchmark lanes prove the planning loop.
 
 Manual or scheduled expensive lanes prove real research progress.
+
+For local setup, use the root [`CONTRIBUTING.md`](../../CONTRIBUTING.md). It
+splits CPU-only source-tree checks from the Linux CUDA path that can run
+`scripts/ci_local.sh` end to end.
