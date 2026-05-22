@@ -1,0 +1,178 @@
+from __future__ import annotations
+
+import copy
+import importlib.util
+import io
+import unittest
+from contextlib import redirect_stdout
+from pathlib import Path
+
+from tests import _pathfix  # noqa: F401
+
+from research_engine.arch_cost_model import (
+    HARDWARE_PROFILES,
+    ArchitectureCostModel,
+    _is_tile_aligned,
+    _tile_efficiency,
+)
+
+
+REPO = Path(__file__).resolve().parent.parent
+
+
+BASE_CONFIG = {
+    "hidden_dim": 2048,
+    "num_heads": 16,
+    "num_kv_heads": 2,
+    "head_dim": 128,
+    "ffn_dim": 8192,
+    "seq_len": 2048,
+    "batch_size": 1,
+    "use_qk_norm": True,
+    "window_size": 1024,
+}
+
+
+def _load_nas_experiment_module():
+    path = REPO / "scripts" / "nas_experiment.py"
+    spec = importlib.util.spec_from_file_location("nas_experiment", path)
+    assert spec is not None
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(module)
+    return module
+
+
+class ArchitectureCostModelTests(unittest.TestCase):
+    def test_hardware_profiles_are_supported(self) -> None:
+        for hardware in HARDWARE_PROFILES:
+            model = ArchitectureCostModel(hardware)
+            self.assertEqual(model.hardware, hardware)
+
+        with self.assertRaisesRegex(ValueError, "Unknown hardware"):
+            ArchitectureCostModel("v100")
+
+    def test_predict_layer_returns_consistent_breakdown(self) -> None:
+        prediction = ArchitectureCostModel("a100").predict_layer_ms(BASE_CONFIG)
+
+        self.assertGreater(prediction["total_ms"], 0.0)
+        self.assertAlmostEqual(
+            prediction["total_ms"],
+            sum(prediction["per_kernel"].values()),
+            places=9,
+        )
+        self.assertIn(prediction["bottleneck"], prediction["per_kernel"])
+        self.assertEqual(
+            set(prediction["tile_penalties"]),
+            {"hidden_dim", "ffn_dim", "head_dim"},
+        )
+
+    def test_tile_alignment_reports_kernel_cliffs(self) -> None:
+        self.assertTrue(_is_tile_aligned(4096))
+        self.assertFalse(_is_tile_aligned(4000))
+        self.assertEqual(_tile_efficiency(4096), 1.0)
+        self.assertLess(_tile_efficiency(4000), 1.0)
+
+        config = dict(
+            BASE_CONFIG,
+            hidden_dim=4000,
+            num_heads=50,
+            num_kv_heads=5,
+            head_dim=80,
+            ffn_dim=16192,
+        )
+        prediction = ArchitectureCostModel("a100").predict_layer_ms(config)
+        hidden_penalty = prediction["tile_penalties"]["hidden_dim"]
+        ffn_penalty = prediction["tile_penalties"]["ffn_dim"]
+
+        self.assertFalse(hidden_penalty["aligned_128"])
+        self.assertFalse(ffn_penalty["aligned_128"])
+        self.assertGreater(hidden_penalty["wasted_work_pct"], 0.0)
+        self.assertGreater(ffn_penalty["wasted_work_pct"], 0.0)
+
+    def test_sliding_window_reduces_attention_cost(self) -> None:
+        model = ArchitectureCostModel("a100")
+        full_attention = model.predict_layer_ms(dict(BASE_CONFIG, window_size=None))
+        window_attention = model.predict_layer_ms(dict(BASE_CONFIG, window_size=512))
+
+        self.assertGreater(
+            full_attention["per_kernel"]["attention"],
+            window_attention["per_kernel"]["attention"],
+        )
+
+    def test_h100_profile_predicts_lower_latency_than_a100(self) -> None:
+        a100 = ArchitectureCostModel("a100").predict_layer_ms(BASE_CONFIG)
+        h100 = ArchitectureCostModel("h100").predict_layer_ms(BASE_CONFIG)
+
+        self.assertLess(h100["total_ms"], a100["total_ms"])
+        self.assertLess(h100["per_kernel"]["geglu_mlp"], a100["per_kernel"]["geglu_mlp"])
+
+    def test_rank_configs_sorts_and_preserves_inputs(self) -> None:
+        configs = [
+            dict(
+                BASE_CONFIG,
+                name="wide",
+                hidden_dim=4096,
+                num_heads=32,
+                num_kv_heads=8,
+                ffn_dim=14336,
+            ),
+            dict(BASE_CONFIG, name="compact", hidden_dim=1024, num_heads=8, ffn_dim=4096),
+            dict(BASE_CONFIG, name="base"),
+        ]
+        original = copy.deepcopy(configs)
+
+        ranked = ArchitectureCostModel("a100").rank_configs(configs)
+
+        self.assertEqual(configs, original)
+        self.assertEqual([row["rank"] for row in ranked], [1, 2, 3])
+        self.assertEqual(ranked[0]["name"], "compact")
+        self.assertLessEqual(ranked[0]["total_ms"], ranked[1]["total_ms"])
+
+    def test_rank_configs_validates_metric(self) -> None:
+        with self.assertRaisesRegex(ValueError, "Unknown ranking metric"):
+            ArchitectureCostModel("a100").rank_configs([BASE_CONFIG], metric="accuracy")
+
+    def test_sweep_dimension_includes_tile_efficiency(self) -> None:
+        base = {
+            "num_heads": 16,
+            "num_kv_heads": 2,
+            "head_dim": 128,
+            "ffn_dim": 8192,
+            "seq_len": 2048,
+            "batch_size": 1,
+            "use_qk_norm": True,
+            "window_size": 1024,
+        }
+        results = ArchitectureCostModel("a100").sweep_dimension(
+            base, "hidden_dim", [2048, 2016]
+        )
+
+        self.assertTrue(results[0]["aligned_128"])
+        self.assertEqual(results[0]["tile_efficiency"], 1.0)
+        self.assertFalse(results[1]["aligned_128"])
+        self.assertLess(results[1]["tile_efficiency"], 1.0)
+
+
+class NasExperimentTests(unittest.TestCase):
+    def test_run_comparison_does_not_mutate_config_lists(self) -> None:
+        module = _load_nas_experiment_module()
+        before = copy.deepcopy(module.KNOWN_CONFIGS + module.NOVEL_CONFIGS)
+
+        with redirect_stdout(io.StringIO()):
+            module.run_comparison(ArchitectureCostModel("a100"))
+
+        self.assertEqual(module.KNOWN_CONFIGS + module.NOVEL_CONFIGS, before)
+
+    def test_run_comparison_prints_nas_ranking(self) -> None:
+        module = _load_nas_experiment_module()
+        stdout = io.StringIO()
+
+        with redirect_stdout(stdout):
+            module.run_comparison(ArchitectureCostModel("a100"))
+
+        self.assertIn("Fastest-first NAS ranking", stdout.getvalue())
+
+
+if __name__ == "__main__":
+    unittest.main()

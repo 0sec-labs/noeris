@@ -17,7 +17,6 @@ Usage::
 from __future__ import annotations
 
 import argparse
-import sys
 from pathlib import Path
 
 # Direct import to avoid research_engine.__init__ pulling in torch
@@ -95,6 +94,10 @@ NOVEL_CONFIGS = [
 ]
 
 
+def _prediction_config(config: dict) -> dict:
+    return {key: value for key, value in config.items() if key != "name"}
+
+
 def run_comparison(model: ArchitectureCostModel) -> None:
     """Compare all configs and print a table."""
     all_configs = KNOWN_CONFIGS + NOVEL_CONFIGS
@@ -108,9 +111,8 @@ def run_comparison(model: ArchitectureCostModel) -> None:
 
     results = []
     for cfg in all_configs:
-        name = cfg.pop("name")
-        pred = model.predict_layer_ms(cfg)
-        cfg["name"] = name  # restore
+        name = cfg["name"]
+        pred = model.predict_layer_ms(_prediction_config(cfg))
 
         pk = pred["per_kernel"]
         attn_ms = pk.get("attention", 0)
@@ -134,6 +136,13 @@ def run_comparison(model: ArchitectureCostModel) -> None:
               f"(tile_eff D={_tile_efficiency(cfg['hidden_dim']):.2f} "
               f"FFN={_tile_efficiency(cfg['ffn_dim']):.2f})")
 
+    print(f"\n{'='*90}")
+    print("  Fastest-first NAS ranking")
+    print(f"{'='*90}")
+    for row in model.rank_configs(all_configs):
+        print(f"  #{row['rank']:02d} {row['name']:20s}  {row['total_ms']:7.3f} ms  "
+              f"bottleneck={row['bottleneck']}")
+
 
 def run_kernel_cliff_test(model: ArchitectureCostModel) -> None:
     """Test whether tile-unaligned dimensions cause performance cliffs."""
@@ -153,7 +162,7 @@ def run_kernel_cliff_test(model: ArchitectureCostModel) -> None:
     print(f"  {'hidden_dim':>10s} {'total_ms':>9s} {'aligned':>8s} {'tile_eff':>9s} {'bottleneck':>18s}")
     print("  " + "-" * 60)
     for r in results:
-        eff = _tile_efficiency(r["hidden_dim"])
+        eff = r["tile_efficiency"]
         aligned = "yes" if r["aligned_128"] else "NO"
         marker = " ***" if not r["aligned_128"] else ""
         print(f"  {r['hidden_dim']:10d} {r['total_ms']:9.3f} {aligned:>8s} "
@@ -175,7 +184,7 @@ def run_kernel_cliff_test(model: ArchitectureCostModel) -> None:
     print(f"  {'ffn_dim':>10s} {'total_ms':>9s} {'aligned':>8s} {'tile_eff':>9s}")
     print("  " + "-" * 60)
     for r in results2:
-        eff = _tile_efficiency(r["ffn_dim"])
+        eff = r["tile_efficiency"]
         aligned = "yes" if r["aligned_128"] else "NO"
         marker = " ***" if not r["aligned_128"] else ""
         print(f"  {r['ffn_dim']:10d} {r['total_ms']:9.3f} {aligned:>8s} {eff:9.3f}{marker}")

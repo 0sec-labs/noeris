@@ -22,9 +22,7 @@ Usage::
 
 from __future__ import annotations
 
-import json
 import math
-from pathlib import Path
 from typing import Any
 
 
@@ -101,6 +99,16 @@ def _tile_efficiency(dim: int, tile: int = MATMUL_TILE_SIZE) -> float:
     """
     n_tiles = math.ceil(dim / tile)
     return dim / (n_tiles * tile)
+
+
+def _tile_penalty(dim: int, tile: int = MATMUL_TILE_SIZE) -> dict[str, Any]:
+    efficiency = _tile_efficiency(dim, tile)
+    return {
+        "value": dim,
+        "aligned_128": _is_tile_aligned(dim, tile),
+        "efficiency": efficiency,
+        "wasted_work_pct": (1.0 / efficiency - 1.0) * 100.0,
+    }
 
 
 class ArchitectureCostModel:
@@ -246,21 +254,9 @@ class ArchitectureCostModel:
 
         # Tile alignment analysis
         tile_penalties = {
-            "hidden_dim": {
-                "value": D,
-                "aligned_128": _is_tile_aligned(D),
-                "efficiency": _tile_efficiency(D),
-            },
-            "ffn_dim": {
-                "value": ffn,
-                "aligned_128": _is_tile_aligned(ffn),
-                "efficiency": _tile_efficiency(ffn),
-            },
-            "head_dim": {
-                "value": Dh,
-                "aligned_128": _is_tile_aligned(Dh),
-                "efficiency": _tile_efficiency(Dh),
-            },
+            "hidden_dim": _tile_penalty(D),
+            "ffn_dim": _tile_penalty(ffn),
+            "head_dim": _tile_penalty(Dh),
         }
 
         return {
@@ -269,6 +265,44 @@ class ArchitectureCostModel:
             "bottleneck": bottleneck,
             "tile_penalties": tile_penalties,
         }
+
+    def rank_configs(self, configs: list[dict[str, Any]], *,
+                     name_key: str = "name",
+                     metric: str = "total_ms") -> list[dict[str, Any]]:
+        """Predict and rank architecture candidates without mutating inputs.
+
+        ``metric`` can be ``total_ms`` for fastest layer latency or
+        ``ms_per_mparam_proxy`` for latency normalized by hidden_dim*ffn_dim.
+        """
+        valid_metrics = {"total_ms", "ms_per_mparam_proxy"}
+        if metric not in valid_metrics:
+            choices = sorted(valid_metrics)
+            raise ValueError(f"Unknown ranking metric {metric!r}, choose from {choices}")
+
+        ranked = []
+        for index, config in enumerate(configs):
+            prediction_config = dict(config)
+            name = prediction_config.pop(name_key, f"config_{index}")
+            pred = self.predict_layer_ms(prediction_config)
+            param_proxy_m = (
+                prediction_config["hidden_dim"] * prediction_config["ffn_dim"] / 1e6
+            )
+            ms_per_mparam_proxy = pred["total_ms"] / param_proxy_m
+            ranked.append({
+                "rank": 0,
+                "name": name,
+                "config": prediction_config,
+                "total_ms": pred["total_ms"],
+                "ms_per_mparam_proxy": ms_per_mparam_proxy,
+                "bottleneck": pred["bottleneck"],
+                "tile_penalties": pred["tile_penalties"],
+                "prediction": pred,
+            })
+
+        ranked.sort(key=lambda row: row[metric])
+        for rank, row in enumerate(ranked, start=1):
+            row["rank"] = rank
+        return ranked
 
     def sweep_dimension(self, base_config: dict[str, Any], dim_name: str,
                          values: list[int]) -> list[dict[str, Any]]:
@@ -280,10 +314,13 @@ class ArchitectureCostModel:
         for v in values:
             cfg = {**base_config, dim_name: v}
             pred = self.predict_layer_ms(cfg)
+            efficiency = _tile_efficiency(v)
             results.append({
                 dim_name: v,
                 "total_ms": pred["total_ms"],
                 "bottleneck": pred["bottleneck"],
                 "aligned_128": _is_tile_aligned(v),
+                "tile_efficiency": efficiency,
+                "wasted_work_pct": (1.0 / efficiency - 1.0) * 100.0,
             })
         return results
