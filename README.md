@@ -41,7 +41,7 @@ activation patches.
 | Cross-op fusion: kernel launch reduction | 40 launches &rarr; **1** (QK-RMSNorm+RoPE) |
 | End-to-end 26-layer Gemma 4 (A100) | **1.43x** (41.4 ms &rarr; 29.1 ms) |
 | Gemma 4 decoder layer deeper fusion (A100) | **1.13x** (`31b_local`), **1.07x** (`31b_global`), **1.90x** (`e2b_local`) |
-| Gemma 4 decoder layer deeper fusion (H100) | **1.26x** (`31b_local`), **1.17x** (`31b_global`), **2.32x** (`e2b_local`) |
+| Gemma 4 decoder layer deeper fusion (H100) | **1.26x** (`31b_local`), **1.18x** (`31b_global`), **2.29x** (`e2b_local`) |
 | Bandit convergence | **98% of optimal in 1 iteration** (50x faster than grid search) |
 | Model coverage | **19 models / 13 families** |
 | Cross-hardware zero-shot config prediction | **&rho;=0.907** (A100 from free T4 data) |
