@@ -12,6 +12,15 @@ Canonical latest artifacts (current public references):
   - `docs/results/gemma4-layer-bench-deeper-fusion-a100-after-policy-routing-sanity.json`
   - `docs/results/gemma4-layer-bench-deeper-fusion-h100-after-policy-routing-sanity.json`
 
+README headline claim artifacts:
+
+- `docs/results/a100-sliding-window-showdown.json`
+- `docs/results/a100-end-to-end-26layer.json`
+- `docs/results/a100-19model-generalization.json`
+- `docs/results/hardware-cross-learning-a100-to-h100.json`
+- `docs/results/qk-norm-rope-a100-full.json`
+- `docs/results/qk-norm-rope-h100-full.json`
+
 Targeted QK-norm attention reruns:
 
 - `docs/results/bandit-qknorm-attention-a100-v3.json`
