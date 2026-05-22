@@ -2,6 +2,13 @@
 
 **Draft — work in progress.** Not yet submitted.
 
+**Operator surface note.** The current repository registers 22 operator specs:
+10 are wired into the generic `triton-iterate` / `ablation` CLI, 8 run in the
+default GitHub Actions matrix, and 2 are exposed as public `noeris.patch()`
+hooks. See [`docs/system/OPERATOR_SURFACE.md`](../system/OPERATOR_SURFACE.md).
+Older counts below refer to the evaluated paper-artifact snapshots they
+describe, not the full current registry.
+
 ---
 
 ## Abstract
@@ -32,7 +39,13 @@ All code, benchmark data, and reproduction scripts are available at https://gith
 
 1. **A practical fused kernel that makes QK-norm+RoPE fusion actually work.** The Gemma 3/4 attention prologue (`Q-RMSNorm → K-RMSNorm → Q-RoPE → K-RoPE`) has prior art: vLLM has an experimental `enable_qk_norm_rope_fusion` pass (a `torch.compile` pass with a CUDA kernel), SGLang has `fused_qknorm_rope`, Modular has fused RoPE+RMSNorm kernels, and Liao et al. describe algebraic optimizations in "Flash Normalization" (arXiv:2407.09577). However, vLLM's fusion is **disabled by default** due to H100 performance regression ([issue #34391](https://github.com/vllm-project/vllm/issues/34391)), with a reported 2-3% E2E benefit when enabled. To our knowledge, none of the existing fusions handle Gemma's `(1+w)` affine mode (though vLLM's Gemma 4 support may address this in their `attention_k_eq_v` path). Our parameterized Triton kernel with bandit-tuned configs (`triton_qk_norm_rope.py`, §3.2.1) beats the separated-kernel-launches baseline (4 PyTorch kernel launches vs. 2 fused) by 10.2–12.9× on A100 and 10.4–11.9× on H100 across six Gemma 3/4 shape buckets (60/60 correct, zero failures). Peak 1627.7 GB/s on H100 `gemma4_31b_global`. The novelty is not the fusion idea itself, but the Triton implementation with autonomous autotuning that delivers the fusion benefit reliably across hardware.
 
-2. **System.** A complete autonomous kernel search loop for nine parameterized Triton operators, running on cloud GPUs via Modal with GitHub Actions orchestration. At approximately $0.01 per iteration, the system is cheap enough to run continuously. The ninth operator — the fused QK-RMSNorm+RoPE kernel above — was discovered as a gap during architectural audit of Gemma 4 and implemented through the same `TritonOperatorSpec` interface as every other operator, reusing the bandit, cost model, and config database without modification (§3.2.1).
+2. **System.** A complete autonomous kernel search loop for ten generic
+`triton-iterate` operators, running on cloud GPUs via Modal with GitHub Actions
+orchestration. At approximately $0.01 per iteration, the system is cheap enough
+to run continuously. The fused QK-RMSNorm+RoPE kernel above was discovered as a
+gap during architectural audit of Gemma 4 and implemented through the same
+`TritonOperatorSpec` interface as every other operator, reusing the bandit,
+cost model, and config database without modification (§3.2.1).
 
 3. **Full Gemma 4 attention support.** Grouped-query attention (`NUM_KV_HEADS` / `GROUP_SIZE` constexprs), asymmetric local/global `head_dim` (256/512) with dedicated shape buckets for all four Gemma 4 variants (E2B 8:1, 26B-A4B 16:2, 31B 32:4), and Gemma-mode `(1 + weight)` RMSNorm affine (verified against HF `Gemma4RMSNorm` source) are all implemented and tested.
 

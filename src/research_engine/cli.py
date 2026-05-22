@@ -26,6 +26,7 @@ from ._legacy.ingestion import (
     UrllibHttpClient,
 )
 from .llm import LlmConfigurationError, LlmHypothesisPlanner, LlmResearchMemory, ResponsesApiClient
+from .operator_surface import TRITON_ITERATE_OPERATORS
 from .triton_kernels import (
     MATMUL_SHAPE_BUCKETS,
     ConfigDatabase,
@@ -281,8 +282,11 @@ def build_parser() -> argparse.ArgumentParser:
     triton_parser.add_argument(
         "--operator",
         default="matmul",
-        choices=["matmul", "rmsnorm", "softmax", "layernorm", "cross_entropy", "attention", "attention_v2", "rotary", "geglu", "fused_norm_linear"],
-        help="which Triton operator to search",
+        choices=TRITON_ITERATE_OPERATORS,
+        help=(
+            "which generic triton-iterate operator to search; registered-only "
+            "operators are documented in docs/system/OPERATOR_SURFACE.md"
+        ),
     )
     triton_parser.add_argument(
         "--configs-per-run",
@@ -411,7 +415,7 @@ def build_parser() -> argparse.ArgumentParser:
     ablation_parser.add_argument(
         "--operator",
         required=True,
-        choices=["matmul", "rmsnorm", "softmax", "layernorm", "cross_entropy", "attention", "attention_v2", "rotary", "geglu", "fused_norm_linear"],
+        choices=TRITON_ITERATE_OPERATORS,
     )
     ablation_parser.add_argument("--gpu", default="A100")
     ablation_parser.add_argument("--trials", type=int, default=1,

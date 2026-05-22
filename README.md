@@ -11,7 +11,7 @@
 <p align="center">
   <img alt="Python" src="https://img.shields.io/badge/python-3.11+-111827?style=flat-square&logo=python&logoColor=F7C948">
   <img alt="License" src="https://img.shields.io/badge/license-MIT-111827?style=flat-square">
-  <img alt="Operators" src="https://img.shields.io/badge/operators-21-111827?style=flat-square">
+  <img alt="Operators" src="https://img.shields.io/badge/operators-22-111827?style=flat-square">
   <img alt="Hardware" src="https://img.shields.io/badge/validated-T4%20%7C%20A100%20%7C%20H100-111827?style=flat-square">
 </p>
 
@@ -136,18 +136,34 @@ All 19 shapes pass correctness. Fusion speedup measured on T4 (Kaggle) and A100 
 | InternLM 3 | 8B | 8.3x | 5.2x |
 | Mamba-3 | SSM scan | 1.88 GB/s | -- |
 
-## Operators (21 parameterized Triton templates)
+## Operators
+
+Noeris currently registers 22 operator specs. Ten are wired into the generic
+`triton-iterate` / `ablation` CLI, eight run in the default GitHub Actions
+Triton Iterate matrix, and two are exposed as drop-in `noeris.patch()` hooks.
+The full surface split is documented in
+[`docs/system/OPERATOR_SURFACE.md`](docs/system/OPERATOR_SURFACE.md).
+
+| Surface | Count | Operators |
+|---|---:|---|
+| Registered specs | 22 | `attention`, `attention_decode`, `attention_v2`, `cross_entropy`, `cuda_qk_norm_rope`, `fused_norm_linear`, `geglu`, `gelu`, `grouped_gemm`, `kv_shared_attention`, `layernorm`, `matmul`, `matmul_splitk`, `moe_router`, `ple_fusion`, `ple_gather`, `qk_norm_rope`, `qk_norm_rope_bwd`, `rmsnorm`, `rotary`, `softmax`, `ssm_scan` |
+| Generic search CLI | 10 | `matmul`, `rmsnorm`, `softmax`, `layernorm`, `cross_entropy`, `attention`, `attention_v2`, `rotary`, `geglu`, `fused_norm_linear` |
+| Default workflow matrix | 8 | `matmul`, `rmsnorm`, `softmax`, `layernorm`, `cross_entropy`, `attention`, `rotary`, `geglu` |
+| Public `noeris.patch()` hooks | 2 | `rmsnorm`, `geglu` |
+
+### Registered Categories
 
 | Category | Operators |
 |---|---|
-| Core | matmul, rmsnorm (`1+w` Gemma affine), layernorm, softmax (+ softcap), cross_entropy |
-| Attention | GQA + causal + sliding-window + QK-norm + YOCO KV-share, paged-KV decode (pure Triton) |
-| Fusion | fused QK-RMSNorm+RoPE (fwd + bwd), fused GeGLU, fused norm+matmul |
-| Routing | RoPE (dual-base with p-RoPE), MoE router (matmul+softmax+top-k), grouped GEMM (sort-free) |
-| Embedding | PLE gather (Gemma E2B/E4B per-layer), PLE fusion (2.07x), K=V attention |
-| SSM | selective scan (Mamba-3) |
+| Core | `matmul`, `matmul_splitk`, `rmsnorm`, `layernorm`, `softmax`, `cross_entropy`, `gelu` |
+| Attention | `attention`, `attention_v2`, `attention_decode`, `rotary`, `qk_norm_rope`, `qk_norm_rope_bwd`, `cuda_qk_norm_rope`, `kv_shared_attention` |
+| Fusion | `geglu`, `fused_norm_linear`, `ple_gather`, `ple_fusion` |
+| Routing | `moe_router`, `grouped_gemm` |
+| SSM | `ssm_scan` |
 
-110+ shape buckets. 606 unit tests. 18/20 operators validated on T4; all pass correctness on A100 and H100.
+110+ shape buckets. 606 unit tests. T4/A100/H100 validation status varies by
+operator and benchmark path; see `docs/results/` for the current canonical
+artifacts.
 
 ## Search system
 
