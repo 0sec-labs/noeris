@@ -3,6 +3,9 @@ from __future__ import annotations
 import copy
 import importlib.util
 import io
+import json
+import subprocess
+import tempfile
 import unittest
 from contextlib import redirect_stdout
 from pathlib import Path
@@ -155,6 +158,76 @@ class ArchitectureCostModelTests(unittest.TestCase):
 
 
 class NasExperimentTests(unittest.TestCase):
+    def test_build_report_has_expected_schema_for_each_hardware(self) -> None:
+        module = _load_nas_experiment_module()
+
+        for hardware in ("a100", "t4", "h100"):
+            report = module.build_report(ArchitectureCostModel(hardware))
+
+            self.assertEqual(report["schema_version"], 1)
+            self.assertEqual(report["experiment"], "kernel_aware_nas")
+            self.assertEqual(report["hardware"], hardware)
+            self.assertEqual(report["candidate_count"], 9)
+            self.assertEqual(len(report["comparison"]), report["candidate_count"])
+            self.assertEqual(
+                len(report["rankings"]["total_ms"]),
+                report["candidate_count"],
+            )
+            self.assertEqual(
+                len(report["rankings"]["ms_per_mparam_proxy"]),
+                report["candidate_count"],
+            )
+            self.assertEqual(report["rankings"]["total_ms"][0]["rank"], 1)
+            self.assertEqual(
+                report["summary"]["fastest_config"],
+                report["rankings"]["total_ms"][0]["name"],
+            )
+            self.assertIn("hidden_dim", report["kernel_cliffs"])
+            self.assertIn("ffn_dim", report["kernel_cliffs"])
+
+    def test_build_report_preserves_cross_hardware_latency_ordering(self) -> None:
+        module = _load_nas_experiment_module()
+        reports = {
+            hardware: module.build_report(ArchitectureCostModel(hardware))
+            for hardware in ("a100", "t4", "h100")
+        }
+
+        def total_ms(hardware: str, name: str) -> float:
+            rows = {
+                row["name"]: row
+                for row in reports[hardware]["comparison"]
+            }
+            return rows[name]["total_ms"]
+
+        for name in ("gemma4_e2b", "optimal_2b", "llama3_8b"):
+            self.assertLess(total_ms("h100", name), total_ms("a100", name))
+            self.assertLess(total_ms("a100", name), total_ms("t4", name))
+
+    def test_cli_writes_json_artifact(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            artifact = Path(temp_dir) / "nas-a100.json"
+            result = subprocess.run(
+                [
+                    "python3",
+                    str(REPO / "scripts" / "nas_experiment.py"),
+                    "--hardware",
+                    "a100",
+                    "--json-output",
+                    str(artifact),
+                ],
+                cwd=REPO,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertTrue(artifact.exists())
+            payload = json.loads(artifact.read_text(encoding="utf-8"))
+
+        self.assertIn("Wrote JSON artifact", result.stdout)
+        self.assertEqual(payload["hardware"], "a100")
+        self.assertEqual(payload["summary"]["fastest_config"], "deep_narrow")
+
     def test_run_comparison_does_not_mutate_config_lists(self) -> None:
         module = _load_nas_experiment_module()
         before = copy.deepcopy(module.KNOWN_CONFIGS + module.NOVEL_CONFIGS)
