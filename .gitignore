@@ -5,6 +5,7 @@ __pycache__/
 .venv311/
 dist/
 build/
+*.egg-info/
 .noeris/
 .omx/
 
