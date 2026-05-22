@@ -18,6 +18,7 @@ The autonomous discovery system behind Noeris's kernel optimizations.
 - `ingestion.py` — ArXiv + GitHub source providers
 - `bandit_selector.py` — Thompson-sampling config selection
 - `cost_model.py` — gradient-boosted performance prediction
+- `arch_cost_model.py` — kernel-aware architecture ranking for NAS candidates
 - `map_elites.py` — quality-diversity search
 - `adaptive_router.py` — meta-bandit selector routing
 - `world_model.py` — hypothesis tracking

@@ -154,6 +154,7 @@ All 19 shapes pass correctness. Fusion speedup measured on T4 (Kaggle) and A100 
 - **Thompson-sampling bandit** + **gradient-boosted cost model** (R^2 = 0.94) + **MAP-Elites quality-diversity**
 - **Cross-run shape-indexed config database** -- knowledge compounds across sessions
 - **Cross-hardware transfer** -- A100-trained cost model rankings transfer to H100 with &rho;=0.967
+- **Kernel-aware NAS proxy** -- ranks architecture candidates against A100/T4/H100 kernel profiles
 - ~$0.01 per iteration on Modal
 
 ## Compiler comparison (T4)
