@@ -24,6 +24,8 @@ Run:
 python scripts/nas_experiment.py --hardware a100
 python scripts/nas_experiment.py --hardware t4
 python scripts/nas_experiment.py --hardware h100
+python scripts/nas_experiment.py --hardware a100 \
+  --json-output docs/results/kernel-aware-nas-a100.json
 ```
 
 ## What this answers
@@ -36,6 +38,11 @@ The experiment can answer hardware-facing architecture questions such as:
   boundary; and
 - whether the same ranking holds across A100, T4, and H100 profiles.
 
+When `--json-output` is set, the script writes a deterministic artifact with
+the candidate comparison table, fastest-first rankings, tile-cliff sweeps, and
+summary fields. This is intended for CI comparisons and future checked-in
+benchmark packs.
+
 This is intentionally a latency proxy, not a quality proxy. The ranking does
 not estimate perplexity, training stability, memory pressure, or downstream
 accuracy. A full NAS loop should pair this latency ranking with a quality
@@ -47,6 +54,6 @@ constraint before selecting an architecture.
    `.noeris` kernel performance database instead of manual constants.
 2. Add candidate generation over head dimension, GQA ratio, FFN ratio, sliding
    window size, and QK-norm placement.
-3. Emit JSON artifacts from `scripts/nas_experiment.py` so ranked candidates can
-   be compared across runs and hardware.
+3. Add a multi-hardware comparison command that writes A100, T4, and H100
+   reports in one invocation.
 4. Validate the top candidates with real Triton layer benchmarks.

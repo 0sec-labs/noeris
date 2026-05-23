@@ -12,11 +12,13 @@ layer latency from architecture hyperparameters.  Key goals:
 Usage::
 
     python scripts/nas_experiment.py [--hardware a100|t4|h100]
+    python scripts/nas_experiment.py --hardware a100 --json-output /tmp/nas-a100.json
 """
 
 from __future__ import annotations
 
 import argparse
+import json
 from pathlib import Path
 
 # Direct import to avoid research_engine.__init__ pulling in torch
@@ -96,6 +98,100 @@ NOVEL_CONFIGS = [
 
 def _prediction_config(config: dict) -> dict:
     return {key: value for key, value in config.items() if key != "name"}
+
+
+def _ranking_rows(ranked: list[dict]) -> list[dict]:
+    return [
+        {
+            "rank": row["rank"],
+            "name": row["name"],
+            "total_ms": row["total_ms"],
+            "ms_per_mparam_proxy": row["ms_per_mparam_proxy"],
+            "bottleneck": row["bottleneck"],
+        }
+        for row in ranked
+    ]
+
+
+def build_report(model: ArchitectureCostModel) -> dict:
+    """Build a machine-readable NAS report for one hardware profile."""
+    all_configs = KNOWN_CONFIGS + NOVEL_CONFIGS
+
+    comparisons = []
+    for cfg in all_configs:
+        pred = model.predict_layer_ms(_prediction_config(cfg))
+        pk = pred["per_kernel"]
+        param_proxy_m = cfg["hidden_dim"] * cfg["ffn_dim"] / 1e6
+        comparisons.append({
+            "name": cfg["name"],
+            "config": _prediction_config(cfg),
+            "total_ms": pred["total_ms"],
+            "bottleneck": pred["bottleneck"],
+            "per_kernel": pred["per_kernel"],
+            "attention_ms": pk.get("attention", 0),
+            "mlp_ms": pk.get("geglu_mlp", 0),
+            "matmul_ms": pk.get("qkv_projection", 0) + pk.get("output_projection", 0),
+            "ms_per_mparam_proxy": pred["total_ms"] / param_proxy_m,
+            "tile_penalties": pred["tile_penalties"],
+        })
+
+    hidden_base = {
+        "num_heads": 32, "num_kv_heads": 8, "head_dim": 128,
+        "ffn_dim": 14336, "seq_len": 2048, "batch_size": 1,
+        "use_qk_norm": False, "window_size": None,
+    }
+    ffn_base = {
+        "hidden_dim": 2048, "num_heads": 16, "num_kv_heads": 2,
+        "head_dim": 128, "seq_len": 2048, "batch_size": 1,
+        "use_qk_norm": True, "window_size": 1024,
+    }
+    hidden_sweep = model.sweep_dimension(
+        hidden_base,
+        "hidden_dim",
+        list(range(3840, 4352, 32)),
+    )
+    ffn_sweep = model.sweep_dimension(
+        ffn_base,
+        "ffn_dim",
+        list(range(7936, 8448, 64)),
+    )
+
+    fastest = model.rank_configs(all_configs, metric="total_ms")
+    most_efficient = model.rank_configs(all_configs, metric="ms_per_mparam_proxy")
+
+    return {
+        "schema_version": 1,
+        "experiment": "kernel_aware_nas",
+        "hardware": model.hardware,
+        "candidate_count": len(all_configs),
+        "comparison": comparisons,
+        "rankings": {
+            "total_ms": _ranking_rows(fastest),
+            "ms_per_mparam_proxy": _ranking_rows(most_efficient),
+        },
+        "kernel_cliffs": {
+            "hidden_dim": {
+                "base_config": hidden_base,
+                "values": hidden_sweep,
+            },
+            "ffn_dim": {
+                "base_config": ffn_base,
+                "values": ffn_sweep,
+            },
+        },
+        "summary": {
+            "fastest_config": fastest[0]["name"],
+            "fastest_total_ms": fastest[0]["total_ms"],
+            "most_efficient_config": most_efficient[0]["name"],
+            "most_efficient_ms_per_mparam_proxy": most_efficient[0]["ms_per_mparam_proxy"],
+        },
+    }
+
+
+def write_report(report: dict, output_path: Path) -> None:
+    """Write a deterministic JSON artifact."""
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
 def run_comparison(model: ArchitectureCostModel) -> None:
@@ -194,9 +290,12 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="NAS architecture latency experiment")
     parser.add_argument("--hardware", default="a100", choices=["a100", "t4", "h100"],
                         help="Target GPU for predictions (default: a100)")
+    parser.add_argument("--json-output", type=Path,
+                        help="Optional path for a machine-readable JSON report")
     args = parser.parse_args()
 
     model = ArchitectureCostModel(hardware=args.hardware)
+    report = build_report(model)
 
     run_comparison(model)
     run_kernel_cliff_test(model)
@@ -208,6 +307,10 @@ def main() -> None:
     print("  - GQA (low num_kv_heads) saves attention time but QKV projection is still large")
     print("  - NAS should prefer hidden_dim, ffn_dim that are multiples of 128 (or 256)")
     print(f"{'='*90}\n")
+
+    if args.json_output:
+        write_report(report, args.json_output)
+        print(f"Wrote JSON artifact: {args.json_output}")
 
 
 if __name__ == "__main__":
