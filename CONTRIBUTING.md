@@ -37,6 +37,10 @@ Run a small CPU-safe test slice:
 python -m unittest tests.test_cli tests.test_ci_local_script tests.test_codex_config tests.test_llm
 ```
 
+Targeted `unittest` invocations under the `tests.*` package apply the
+source-tree test path setup automatically. CLI commands and scripts still need
+the `PYTHONPATH` export above unless the package is installed editable.
+
 Preview the full local CI command list without running the GPU-adjacent
 benchmark steps:
 
