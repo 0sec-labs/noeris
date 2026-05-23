@@ -15,8 +15,12 @@ to choose model dimensions that the kernels execute efficiently.
   total layer latency or latency normalized by `hidden_dim * ffn_dim`.
 - `ArchitectureCostModel.sweep_dimension()` exposes tile-efficiency cliffs for
   dimensions that do not land on the 128-wide matmul tile boundary.
+- `generate_nas_candidates()` expands a base config across hidden width, head
+  dimension, GQA ratio, FFN ratio, sliding window, and QK-norm placement while
+  skipping invalid head/KV combinations.
 - `scripts/nas_experiment.py` compares known model shapes against novel
-  candidates and prints a fastest-first NAS ranking.
+  candidates, prints a fastest-first NAS ranking, and ranks the generated
+  candidate space.
 
 Run:
 
@@ -34,6 +38,7 @@ The experiment can answer hardware-facing architecture questions such as:
 
 - which candidate has the lowest predicted layer latency on a target GPU;
 - which kernel dominates the layer latency for that candidate;
+- which generated head-dim / GQA / FFN-ratio / QK-norm candidates rank fastest;
 - whether a hidden size, head size, or FFN size falls off the 128-wide tile
   boundary; and
 - whether the same ranking holds across A100, T4, and H100 profiles.
@@ -52,8 +57,7 @@ constraint before selecting an architecture.
 
 1. Calibrate the hardcoded effective throughput profiles from the persisted
    `.noeris` kernel performance database instead of manual constants.
-2. Add candidate generation over head dimension, GQA ratio, FFN ratio, sliding
-   window size, and QK-norm placement.
-3. Add a multi-hardware comparison command that writes A100, T4, and H100
+2. Add a multi-hardware comparison command that writes A100, T4, and H100
    reports in one invocation.
+3. Add candidate-quality constraints before selecting architectures.
 4. Validate the top candidates with real Triton layer benchmarks.

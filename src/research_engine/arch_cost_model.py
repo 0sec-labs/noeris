@@ -86,6 +86,14 @@ TILE_ALIGNED_SIZES = [64, 128, 256]
 MATMUL_TILE_SIZE = 128  # typical Triton BLOCK_M/N
 
 
+def _round_up_to_multiple(value: float, multiple: int) -> int:
+    return int(math.ceil(value / multiple) * multiple)
+
+
+def _format_ratio(value: float) -> str:
+    return f"{value:g}".replace(".", "p")
+
+
 def _is_tile_aligned(dim: int, tile: int = MATMUL_TILE_SIZE) -> bool:
     return dim % tile == 0
 
@@ -109,6 +117,87 @@ def _tile_penalty(dim: int, tile: int = MATMUL_TILE_SIZE) -> dict[str, Any]:
         "efficiency": efficiency,
         "wasted_work_pct": (1.0 / efficiency - 1.0) * 100.0,
     }
+
+
+def generate_nas_candidates(
+    base_config: dict[str, Any],
+    *,
+    hidden_dims: list[int] | None = None,
+    head_dims: list[int] | None = None,
+    ffn_ratios: list[float] | None = None,
+    kv_head_counts: list[int] | None = None,
+    window_sizes: list[int | None] | None = None,
+    qk_norm_options: list[bool] | None = None,
+    tile_multiple: int = MATMUL_TILE_SIZE,
+    max_candidates: int | None = None,
+) -> list[dict[str, Any]]:
+    """Generate tile-aligned transformer architecture candidates.
+
+    The search varies dimensions that are natural handles for kernel-aware NAS:
+    hidden width, attention head width, GQA ratio, FFN expansion, sliding-window
+    attention, and QK-norm placement. Invalid combinations are skipped.
+    """
+    hidden_dims = hidden_dims or [base_config["hidden_dim"]]
+    head_dims = head_dims or [64, 128, 256]
+    ffn_ratios = ffn_ratios or [3.0, 4.0, 5.333]
+    kv_head_counts = kv_head_counts or [1, 2, 4, 8]
+    window_sizes = window_sizes or [base_config.get("window_size"), None]
+    qk_norm_options = qk_norm_options or [base_config.get("use_qk_norm", True), False]
+
+    candidates: list[dict[str, Any]] = []
+    seen_names: set[str] = set()
+    seen_shapes: set[tuple[Any, ...]] = set()
+
+    for hidden_dim in hidden_dims:
+        for head_dim in head_dims:
+            if hidden_dim % head_dim != 0:
+                continue
+            num_heads = hidden_dim // head_dim
+            for num_kv_heads in kv_head_counts:
+                if num_kv_heads > num_heads or num_heads % num_kv_heads != 0:
+                    continue
+                for ffn_ratio in ffn_ratios:
+                    ffn_dim = _round_up_to_multiple(hidden_dim * ffn_ratio, tile_multiple)
+                    for window_size in window_sizes:
+                        for use_qk_norm in qk_norm_options:
+                            name = (
+                                f"gen_h{hidden_dim}_hd{head_dim}_kv{num_kv_heads}_"
+                                f"ffn{_format_ratio(ffn_ratio)}_"
+                                f"win{window_size or 'full'}_"
+                                f"{'qknorm' if use_qk_norm else 'rope'}"
+                            )
+                            shape_key = (
+                                hidden_dim,
+                                num_heads,
+                                num_kv_heads,
+                                head_dim,
+                                ffn_dim,
+                                window_size,
+                                use_qk_norm,
+                            )
+                            if name in seen_names or shape_key in seen_shapes:
+                                continue
+                            cfg = {
+                                **base_config,
+                                "name": name,
+                                "hidden_dim": hidden_dim,
+                                "num_heads": num_heads,
+                                "num_kv_heads": num_kv_heads,
+                                "head_dim": head_dim,
+                                "ffn_dim": ffn_dim,
+                                "window_size": window_size,
+                                "use_qk_norm": use_qk_norm,
+                            }
+                            candidates.append(cfg)
+                            seen_names.add(name)
+                            seen_shapes.add(shape_key)
+                            if (
+                                max_candidates is not None
+                                and len(candidates) >= max_candidates
+                            ):
+                                return candidates
+
+    return candidates
 
 
 class ArchitectureCostModel:
