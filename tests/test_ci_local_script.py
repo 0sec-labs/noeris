@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import subprocess
+import sys
 import unittest
 from pathlib import Path
 
@@ -11,6 +12,28 @@ SCRIPT = REPO / "scripts/ci_local.sh"
 
 
 class LocalCiScriptTests(unittest.TestCase):
+    def test_targeted_unittest_imports_work_from_source_tree(self) -> None:
+        env = dict(os.environ)
+        env.pop("PYTHONPATH", None)
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "unittest",
+                "tests.test_public_claim_artifacts",
+                "tests.test_operator_surface",
+                "tests.test_package_metadata",
+            ],
+            cwd=REPO,
+            capture_output=True,
+            text=True,
+            check=False,
+            env=env,
+        )
+
+        output = result.stdout + result.stderr
+        self.assertEqual(result.returncode, 0, output)
+
     def test_dry_run_lists_ci_parity_commands(self) -> None:
         env = dict(os.environ)
         env["CI_LOCAL_DRY_RUN"] = "1"
