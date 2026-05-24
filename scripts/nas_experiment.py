@@ -31,6 +31,12 @@ ArchitectureCostModel = _mod.ArchitectureCostModel
 generate_nas_candidates = _mod.generate_nas_candidates
 _tile_efficiency = _mod._tile_efficiency
 
+_meta_path = Path(__file__).resolve().parent.parent / "src" / "research_engine" / "benchmark_metadata.py"
+_meta_spec = importlib.util.spec_from_file_location("benchmark_metadata", _meta_path)
+_meta_mod = importlib.util.module_from_spec(_meta_spec)
+_meta_spec.loader.exec_module(_meta_mod)
+collect_environment = _meta_mod.collect_environment
+
 
 # -----------------------------------------------------------------------
 # Architecture configs
@@ -190,6 +196,9 @@ def build_report(model: ArchitectureCostModel) -> dict:
     return {
         "schema_version": 1,
         "experiment": "kernel_aware_nas",
+        "environment": collect_environment(
+            command=f"python scripts/nas_experiment.py --hardware {model.hardware}",
+        ),
         "hardware": model.hardware,
         "candidate_count": len(all_configs),
         "generated_candidate_count": len(generated),

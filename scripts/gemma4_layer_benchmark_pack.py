@@ -22,6 +22,7 @@ SRC_DIR = ROOT / "src"
 if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
+from research_engine.benchmark_metadata import collect_environment
 from research_engine.gemma4_layer_benchmark import generate_gemma4_layer_benchmark_script
 from research_engine.modal_session import ModalBenchmarkSession
 
@@ -107,8 +108,10 @@ def main() -> int:
             source_dir=source_dir,
         )
 
+    cmd = f"python scripts/gemma4_layer_benchmark_pack.py --gpus {args.gpus}"
     pack = {
         "generated_at_utc": datetime.now(timezone.utc).isoformat(),
+        "environment": collect_environment(command=cmd),
         "gpus": gpus,
         "json_path": str(out_json),
         "results": results,
