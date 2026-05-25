@@ -9,6 +9,9 @@ build/
 .noeris/
 .omx/
 
+# MI300X measured-results placeholder (issue #116)
+docs/results/cross-vendor-measured-mi300x.json
+
 # LaTeX build artifacts
 docs/paper/*.aux
 docs/paper/*.log
