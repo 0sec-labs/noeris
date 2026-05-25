@@ -815,9 +815,15 @@ class LauncherAssertionsTests(unittest.TestCase):
         # Monkey-patch triton/triton.language imports inside the script by
         # executing in a namespace that already has them.
         import sys
-        sys.modules.setdefault("triton", fake_triton)
-        sys.modules.setdefault("triton.language", fake_lang)
-        exec(compile(script_no_main, "<sandbox_attn>", "exec"), ns)
+        saved = {k: sys.modules.pop(k) for k in list(sys.modules) if k == "triton" or k.startswith("triton.") if k in sys.modules}
+        sys.modules["triton"] = fake_triton
+        sys.modules["triton.language"] = fake_lang
+        try:
+            exec(compile(script_no_main, "<sandbox_attn>", "exec"), ns)
+        finally:
+            sys.modules.pop("triton", None)
+            sys.modules.pop("triton.language", None)
+            sys.modules.update(saved)
         return ns["flash_attn"]
 
     def test_flash_attn_rejects_mismatched_kv_heads(self):
