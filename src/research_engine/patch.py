@@ -1,4 +1,15 @@
-"""Drop-in monkey-patch accelerator for HuggingFace transformer models.
+"""Research-engine monkey-patch accelerator for HuggingFace transformer models.
+
+.. note::
+
+   This module is the **research-engine** patch surface.  The authoritative
+   public API is ``noeris.patch()`` in the ``noeris`` package, which supports
+   only the two drop-in patch kernels: **RMSNorm** and **GeGLU** (gated MLP
+   activation).
+
+   QK-RMSNorm+RoPE is *not* a generic drop-in patch.  Models that expose
+   QK-norm layers are detected and logged, but the fusion must be wired
+   manually via ``apply_qk_norm_rope()`` in a custom attention wrapper.
 
 Usage::
 
@@ -6,10 +17,10 @@ Usage::
     from transformers import AutoModelForCausalLM
 
     model = AutoModelForCausalLM.from_pretrained("google/gemma-4-2b")
-    noeris.patch(model)  # replaces RMSNorm, QK-RoPE, GeGLU with fused Triton kernels
+    noeris.patch(model)  # replaces RMSNorm + gated MLP activations (GeGLU)
 
 Works with Gemma 3/4, LLaMA 3/4, Mistral, Qwen 3, Phi-3/4, Falcon 3,
-OLMo 2, and any HuggingFace model that uses RMSNorm + RoPE + GeGLU/SwiGLU.
+OLMo 2, and any HuggingFace model that uses RMSNorm + GeGLU/SwiGLU.
 """
 
 from __future__ import annotations
@@ -228,10 +239,14 @@ def _make_geglu_forward(mlp_module, config: dict, device: str):
 def patch(model, device: str = "cuda", verbose: bool = True) -> dict[str, int]:
     """Monkey-patch a HuggingFace model with Noeris fused Triton kernels.
 
-    Replaces:
+    Drop-in replacements:
+
     - RMSNorm forward -> fused Triton RMSNorm
-    - QK-norm + RoPE -> fused QK-RMSNorm+RoPE (if model uses QK-norm)
     - GeGLU activation -> fused Triton GeGLU (if model uses GeGLU, not SwiGLU)
+
+    QK-RMSNorm+RoPE is **not** patched automatically.  If the model has
+    QK-norm layers they are detected and logged, but the caller must wire
+    ``apply_qk_norm_rope()`` into a custom attention wrapper.
 
     Works with: Gemma 2/3/4, LLaMA 3/4, Mistral, Qwen 3, Phi-3/4,
     Falcon 3, OLMo 2, and other HuggingFace transformer models.
@@ -243,6 +258,7 @@ def patch(model, device: str = "cuda", verbose: bool = True) -> dict[str, int]:
 
     Returns:
         Dict with counts: ``{"rmsnorm": N, "geglu": N, "qk_rope": N}``.
+        ``qk_rope`` reflects layers *detected* (not patched).
     """
     import torch
 
