@@ -21,6 +21,9 @@ to choose model dimensions that the kernels execute efficiently.
 - `scripts/nas_experiment.py` compares known model shapes against novel
   candidates, prints a fastest-first NAS ranking, and ranks the generated
   candidate space.
+- `scripts/nas_experiment.py --all-hardware` writes a deterministic
+  A100/T4/H100 artifact pack with known models, seed candidates, generated
+  candidates, and a size-constrained latency ranking.
 
 Run:
 
@@ -30,6 +33,7 @@ python scripts/nas_experiment.py --hardware t4
 python scripts/nas_experiment.py --hardware h100
 python scripts/nas_experiment.py --hardware a100 \
   --json-output docs/results/kernel-aware-nas-a100.json
+python scripts/nas_experiment.py --all-hardware
 ```
 
 ## What this answers
@@ -48,16 +52,42 @@ the candidate comparison table, fastest-first rankings, tile-cliff sweeps, and
 summary fields. This is intended for CI comparisons and future checked-in
 benchmark packs.
 
-This is intentionally a latency proxy, not a quality proxy. The ranking does
-not estimate perplexity, training stability, memory pressure, or downstream
-accuracy. A full NAS loop should pair this latency ranking with a quality
-constraint before selecting an architecture.
+The canonical multi-hardware pack is:
+
+- `docs/results/kernel-aware-nas-multihardware.json`
+- `docs/results/kernel-aware-nas-multihardware.md`
+
+## Measured vs Proxy
+
+Measured inputs:
+
+- A100 operator records in `.noeris/cost-model-training.json` are used when
+  present to calibrate A100 RMSNorm, matmul, and attention constants.
+- The calibration block in the JSON artifact records the source path, SHA-256,
+  operator summaries, and any derived profile overrides.
+
+Proxy-only pieces:
+
+- T4 and H100 profiles currently use fixed effective-throughput constants.
+- Layer latency is predicted from kernel-level throughput proxies, not measured
+  with an end-to-end model benchmark.
+- The `quality_constrained_latency` ranking uses size/capacity constraints:
+  minimum hidden dimension, minimum `hidden_dim * ffn_dim` proxy, and an FFN
+  ratio range. This prevents the search from simply choosing the smallest
+  architecture, but it is not a learned quality model.
+
+Still speculative:
+
+- The ranking does not estimate perplexity, training stability, memory
+  pressure, or downstream accuracy.
+- The generated candidates have not been trained or evaluated.
+- A full NAS loop must pair this latency proxy with real quality measurements
+  before recommending an architecture.
 
 ## Next steps
 
-1. Calibrate the hardcoded effective throughput profiles from the persisted
-   `.noeris` kernel performance database instead of manual constants.
-2. Add a multi-hardware comparison command that writes A100, T4, and H100
-   reports in one invocation.
-3. Add candidate-quality constraints before selecting architectures.
-4. Validate the top candidates with real Triton layer benchmarks.
+1. Add real quality measurements for the top constrained candidates.
+2. Validate top candidates with real Triton layer benchmarks.
+3. Replace T4/H100 profile constants with measured persisted artifacts.
+4. Expand candidate generation only after adding quality measurements, so the
+   larger search does not optimize latency alone.

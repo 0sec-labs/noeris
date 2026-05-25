@@ -202,6 +202,7 @@ class ArchitectureCostModelTests(unittest.TestCase):
 class NasExperimentTests(unittest.TestCase):
     def test_build_report_has_expected_schema_for_each_hardware(self) -> None:
         module = _load_nas_experiment_module()
+        expected_count = len(module.all_candidate_configs())
 
         for hardware in ("a100", "t4", "h100"):
             report = module.build_report(ArchitectureCostModel(hardware))
@@ -209,7 +210,8 @@ class NasExperimentTests(unittest.TestCase):
             self.assertEqual(report["schema_version"], 1)
             self.assertEqual(report["experiment"], "kernel_aware_nas")
             self.assertEqual(report["hardware"], hardware)
-            self.assertEqual(report["candidate_count"], 9)
+            self.assertEqual(report["candidate_count"], expected_count)
+            self.assertGreater(report["candidate_source_counts"]["generated_candidate"], 0)
             self.assertEqual(len(report["comparison"]), report["candidate_count"])
             self.assertEqual(
                 len(report["rankings"]["total_ms"]),
@@ -220,9 +222,18 @@ class NasExperimentTests(unittest.TestCase):
                 report["candidate_count"],
             )
             self.assertEqual(report["rankings"]["total_ms"][0]["rank"], 1)
+            self.assertGreater(
+                len(report["rankings"]["quality_constrained_latency"]),
+                0,
+            )
             self.assertEqual(
                 report["summary"]["fastest_config"],
                 report["rankings"]["total_ms"][0]["name"],
+            )
+            constrained_top = report["rankings"]["quality_constrained_latency"][0]
+            self.assertGreaterEqual(
+                constrained_top["param_proxy_m"],
+                report["quality_constraints"]["min_param_proxy_m"],
             )
             self.assertGreater(report["generated_candidate_count"], 0)
             self.assertEqual(len(report["generated_search"]["total_ms_top"]), 25)
@@ -232,6 +243,29 @@ class NasExperimentTests(unittest.TestCase):
             )
             self.assertIn("hidden_dim", report["kernel_cliffs"])
             self.assertIn("ffn_dim", report["kernel_cliffs"])
+
+    def test_generated_candidates_and_constrained_ranking_avoid_tiny_models(self) -> None:
+        module = _load_nas_experiment_module()
+        generated = module.generate_candidate_configs()
+
+        self.assertGreater(len(generated), 0)
+        self.assertTrue(any(cfg["hidden_dim"] == 1536 for cfg in generated))
+        self.assertTrue(any(cfg["hidden_dim"] >= 2048 for cfg in generated))
+
+        report = module.build_report(ArchitectureCostModel("a100"))
+        constrained_names = {
+            row["name"] for row in report["rankings"]["quality_constrained_latency"]
+        }
+        by_name = {row["name"]: row for row in report["comparison"]}
+
+        self.assertNotIn("deep_narrow", constrained_names)
+        self.assertTrue(constrained_names)
+        for name in constrained_names:
+            self.assertTrue(by_name[name]["constraints"]["passes"])
+            self.assertGreaterEqual(
+                by_name[name]["config"]["hidden_dim"],
+                report["quality_constraints"]["min_hidden_dim"],
+            )
 
     def test_build_report_preserves_cross_hardware_latency_ordering(self) -> None:
         module = _load_nas_experiment_module()
@@ -275,6 +309,49 @@ class NasExperimentTests(unittest.TestCase):
         self.assertIn("Wrote JSON artifact", result.stdout)
         self.assertEqual(payload["hardware"], "a100")
         self.assertEqual(payload["summary"]["fastest_config"], "deep_narrow")
+
+    def test_build_multi_hardware_report_shape(self) -> None:
+        module = _load_nas_experiment_module()
+
+        report = module.build_multi_hardware_report(calibration_db=None)
+
+        self.assertEqual(report["experiment"], "kernel_aware_nas_multi_hardware")
+        self.assertEqual(report["hardware_profiles"], ["a100", "t4", "h100"])
+        self.assertEqual(set(report["reports"]), {"a100", "t4", "h100"})
+        self.assertEqual(report["candidate_count"], len(report["candidate_catalog"]))
+        self.assertEqual(report["calibration"]["status"], "disabled")
+        for hardware in report["hardware_profiles"]:
+            self.assertIn("quality_constrained_fastest_config", report["summary"][hardware])
+
+    def test_cli_writes_multi_hardware_artifacts(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            out_json = Path(temp_dir) / "nas-pack.json"
+            out_md = Path(temp_dir) / "nas-pack.md"
+            result = subprocess.run(
+                [
+                    "python3",
+                    str(REPO / "scripts" / "nas_experiment.py"),
+                    "--all-hardware",
+                    "--calibration-db",
+                    str(Path(temp_dir) / "missing.json"),
+                    "--json-output",
+                    str(out_json),
+                    "--md-output",
+                    str(out_md),
+                ],
+                cwd=REPO,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            payload = json.loads(out_json.read_text(encoding="utf-8"))
+            md_text = out_md.read_text(encoding="utf-8")
+
+        self.assertEqual(payload["experiment"], "kernel_aware_nas_multi_hardware")
+        self.assertEqual(payload["calibration"]["status"], "unavailable")
+        self.assertIn("Wrote JSON artifact", result.stdout)
+        self.assertIn("Kernel-Aware NAS Multi-Hardware Pack", md_text)
 
     def test_run_comparison_does_not_mutate_config_lists(self) -> None:
         module = _load_nas_experiment_module()
