@@ -114,10 +114,15 @@ def _tile_penalty(dim: int, tile: int = MATMUL_TILE_SIZE) -> dict[str, Any]:
 class ArchitectureCostModel:
     """Predicts layer latency from architecture config using real kernel data."""
 
-    def __init__(self, hardware: str = "a100"):
+    def __init__(
+        self,
+        hardware: str = "a100",
+        *,
+        profile_overrides: dict[str, float] | None = None,
+    ):
         if hardware not in HARDWARE_PROFILES:
             raise ValueError(f"Unknown hardware {hardware!r}, choose from {list(HARDWARE_PROFILES)}")
-        self.hw = HARDWARE_PROFILES[hardware]
+        self.hw = {**HARDWARE_PROFILES[hardware], **(profile_overrides or {})}
         self.hardware = hardware
 
     # ------------------------------------------------------------------
