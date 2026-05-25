@@ -31,7 +31,14 @@ _spec = importlib.util.spec_from_file_location("arch_cost_model", _mod_path)
 _mod = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(_mod)
 ArchitectureCostModel = _mod.ArchitectureCostModel
+generate_nas_candidates = _mod.generate_nas_candidates
 _tile_efficiency = _mod._tile_efficiency
+
+_meta_path = Path(__file__).resolve().parent.parent / "src" / "research_engine" / "benchmark_metadata.py"
+_meta_spec = importlib.util.spec_from_file_location("benchmark_metadata", _meta_path)
+_meta_mod = importlib.util.module_from_spec(_meta_spec)
+_meta_spec.loader.exec_module(_meta_mod)
+collect_environment = _meta_mod.collect_environment
 
 
 # -----------------------------------------------------------------------
@@ -254,6 +261,30 @@ def _rank_constrained(comparisons: list[dict]) -> list[dict]:
     ]
 
 
+def generated_candidate_configs() -> list[dict]:
+    """Generate a compact 2B-class candidate space for kernel-aware NAS."""
+    base = {
+        "hidden_dim": 2048,
+        "num_heads": 16,
+        "num_kv_heads": 2,
+        "head_dim": 128,
+        "ffn_dim": 8192,
+        "seq_len": 2048,
+        "batch_size": 1,
+        "use_qk_norm": True,
+        "window_size": 1024,
+    }
+    return generate_nas_candidates(
+        base,
+        hidden_dims=[1536, 2048, 2560],
+        head_dims=[64, 128, 256],
+        ffn_ratios=[3.0, 4.0, 5.333],
+        kv_head_counts=[1, 2, 4, 8],
+        window_sizes=[512, 1024, None],
+        qk_norm_options=[True, False],
+    )
+
+
 def build_report(
     model: ArchitectureCostModel,
     *,
@@ -323,12 +354,20 @@ def build_report(
         source = _candidate_source(cfg["name"])
         source_counts[source] = source_counts.get(source, 0) + 1
 
+    generated = generated_candidate_configs()
+    generated_fastest = model.rank_configs(generated, metric="total_ms")
+    generated_efficient = model.rank_configs(generated, metric="ms_per_mparam_proxy")
+
     return {
         "schema_version": 1,
         "experiment": "kernel_aware_nas",
+        "environment": collect_environment(
+            command=f"python scripts/nas_experiment.py --hardware {model.hardware}",
+        ),
         "hardware": model.hardware,
         "candidate_count": len(all_configs),
         "candidate_source_counts": source_counts,
+        "generated_candidate_count": len(generated),
         "quality_constraints": QUALITY_CONSTRAINTS,
         "calibration": calibration or {"status": "not_requested"},
         "comparison": comparisons,
@@ -336,6 +375,10 @@ def build_report(
             "total_ms": _ranking_rows(fastest),
             "ms_per_mparam_proxy": _ranking_rows(most_efficient),
             "quality_constrained_latency": constrained,
+        },
+        "generated_search": {
+            "total_ms_top": _ranking_rows(generated_fastest[:25]),
+            "ms_per_mparam_proxy_top": _ranking_rows(generated_efficient[:25]),
         },
         "kernel_cliffs": {
             "hidden_dim": {
@@ -356,6 +399,8 @@ def build_report(
             "quality_constrained_fastest_total_ms": constrained[0]["total_ms"] if constrained else None,
             "quality_constrained_candidate_count": len(constrained),
             "deep_narrow_unconstrained_rank": fastest_by_name["deep_narrow"]["rank"],
+            "fastest_generated_config": generated_fastest[0]["name"],
+            "fastest_generated_total_ms": generated_fastest[0]["total_ms"],
         },
     }
 
@@ -473,7 +518,10 @@ def build_multi_hardware_report(
 def write_report(report: dict, output_path: Path) -> None:
     """Write a deterministic JSON artifact."""
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    output_path.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    output_path.write_text(
+        json.dumps(report, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
 
 
 def render_multi_hardware_markdown(pack: dict) -> str:
@@ -558,6 +606,22 @@ def run_comparison(model: ArchitectureCostModel) -> None:
               f"bottleneck={row['bottleneck']}")
 
 
+def run_generated_search(model: ArchitectureCostModel, top_n: int = 10) -> None:
+    """Generate and rank a broader kernel-aware architecture candidate set."""
+    generated = generated_candidate_configs()
+    ranked = model.rank_configs(generated)
+
+    print(f"\n{'='*90}")
+    print(f"  Generated NAS candidates: top {top_n} of {len(generated)}")
+    print(f"{'='*90}")
+    print(f"  {'Rank':>4s} {'Config':38s} {'Total ms':>9s} {'Eff':>8s} {'Bottleneck':>14s}")
+    print("  " + "-" * 82)
+    for row in ranked[:top_n]:
+        print(f"  #{row['rank']:02d}  {row['name'][:38]:38s} "
+              f"{row['total_ms']:9.3f} {row['ms_per_mparam_proxy']:8.4f} "
+              f"{row['bottleneck']:>14s}")
+
+
 def run_kernel_cliff_test(model: ArchitectureCostModel) -> None:
     """Test whether tile-unaligned dimensions cause performance cliffs."""
     print(f"\n{'='*90}")
@@ -634,6 +698,7 @@ def main() -> None:
     report = build_report(model)
 
     run_comparison(model)
+    run_generated_search(model)
     run_kernel_cliff_test(model)
 
     print(f"\n{'='*90}")

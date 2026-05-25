@@ -15,6 +15,7 @@ from tests import _pathfix  # noqa: F401
 from research_engine.arch_cost_model import (
     HARDWARE_PROFILES,
     ArchitectureCostModel,
+    generate_nas_candidates,
     _is_tile_aligned,
     _tile_efficiency,
 )
@@ -156,6 +157,47 @@ class ArchitectureCostModelTests(unittest.TestCase):
         self.assertFalse(results[1]["aligned_128"])
         self.assertLess(results[1]["tile_efficiency"], 1.0)
 
+    def test_generate_nas_candidates_varies_architecture_knobs(self) -> None:
+        candidates = generate_nas_candidates(
+            BASE_CONFIG,
+            hidden_dims=[2048],
+            head_dims=[64, 128],
+            ffn_ratios=[3.0, 4.0],
+            kv_head_counts=[1, 2, 64],
+            window_sizes=[512, None],
+            qk_norm_options=[True, False],
+        )
+
+        names = [cfg["name"] for cfg in candidates]
+        self.assertEqual(len(names), len(set(names)))
+        self.assertGreater(len(candidates), 1)
+        self.assertTrue(all(cfg["ffn_dim"] % 128 == 0 for cfg in candidates))
+        self.assertTrue(
+            all(cfg["num_heads"] % cfg["num_kv_heads"] == 0 for cfg in candidates)
+        )
+        self.assertTrue(
+            all(cfg["num_kv_heads"] <= cfg["num_heads"] for cfg in candidates)
+        )
+        self.assertEqual({cfg["head_dim"] for cfg in candidates}, {64, 128})
+        self.assertEqual({cfg["use_qk_norm"] for cfg in candidates}, {True, False})
+        self.assertNotIn(64, {cfg["num_kv_heads"] for cfg in candidates})
+
+    def test_generated_candidates_are_rankable(self) -> None:
+        candidates = generate_nas_candidates(
+            BASE_CONFIG,
+            hidden_dims=[1536, 2048],
+            head_dims=[128, 256],
+            ffn_ratios=[3.0],
+            kv_head_counts=[1, 2],
+            window_sizes=[1024],
+            qk_norm_options=[True],
+        )
+        ranked = ArchitectureCostModel("a100").rank_configs(candidates)
+
+        self.assertEqual(len(ranked), len(candidates))
+        self.assertEqual(ranked[0]["rank"], 1)
+        self.assertLessEqual(ranked[0]["total_ms"], ranked[-1]["total_ms"])
+
 
 class NasExperimentTests(unittest.TestCase):
     def test_build_report_has_expected_schema_for_each_hardware(self) -> None:
@@ -192,6 +234,12 @@ class NasExperimentTests(unittest.TestCase):
             self.assertGreaterEqual(
                 constrained_top["param_proxy_m"],
                 report["quality_constraints"]["min_param_proxy_m"],
+            )
+            self.assertGreater(report["generated_candidate_count"], 0)
+            self.assertEqual(len(report["generated_search"]["total_ms_top"]), 25)
+            self.assertEqual(
+                report["summary"]["fastest_generated_config"],
+                report["generated_search"]["total_ms_top"][0]["name"],
             )
             self.assertIn("hidden_dim", report["kernel_cliffs"])
             self.assertIn("ffn_dim", report["kernel_cliffs"])
@@ -322,6 +370,18 @@ class NasExperimentTests(unittest.TestCase):
             module.run_comparison(ArchitectureCostModel("a100"))
 
         self.assertIn("Fastest-first NAS ranking", stdout.getvalue())
+
+    def test_generated_search_prints_top_candidates(self) -> None:
+        module = _load_nas_experiment_module()
+        stdout = io.StringIO()
+
+        with redirect_stdout(stdout):
+            module.run_generated_search(ArchitectureCostModel("a100"), top_n=3)
+
+        output = stdout.getvalue()
+        self.assertIn("Generated NAS candidates", output)
+        self.assertIn("top 3", output)
+        self.assertIn("#01", output)
 
 
 if __name__ == "__main__":

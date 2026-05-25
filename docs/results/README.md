@@ -107,6 +107,15 @@ Current canonical pack artifacts:
 - `docs/results/gemma4-layer-bench-deeper-fusion-canonical-pack.json`
 - `docs/results/gemma4-layer-bench-deeper-fusion-canonical-pack.md`
 
+Runtime metadata guidance:
+
+Future paper-facing benchmark artifacts should include an `"environment"` block
+captured by `research_engine.benchmark_metadata.collect_environment()`. This
+records Python, PyTorch, Triton, CUDA runtime/driver versions, GPU name, git
+commit, and the benchmark command so that results are auditable and
+reproducible. Historical artifacts are not retroactively updated unless a
+migration is clearly worthwhile.
+
 Notes:
 
 - Historical artifacts in this directory are retained for auditability and timeline context.

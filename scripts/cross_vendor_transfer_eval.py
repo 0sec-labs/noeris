@@ -8,6 +8,7 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 
+from research_engine.benchmark_metadata import collect_environment
 from research_engine.cross_vendor_transfer import (
     latency_regret,
     spearman_rank_correlation,
@@ -127,8 +128,10 @@ def main() -> int:
     measured = _load_json(measured_path)
 
     eval_out = evaluate_transfer(prediction=prediction, measured=measured, top_k=args.top_k)
+    cmd = f"python scripts/cross_vendor_transfer_eval.py --prediction-json {args.prediction_json} --measured-json {args.measured_json}"
     report = {
         "generated_at_utc": datetime.now(timezone.utc).isoformat(),
+        "environment": collect_environment(command=cmd),
         "prediction_artifact": str(prediction_path),
         "measured_artifact": str(measured_path),
         "top_k": args.top_k,

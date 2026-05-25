@@ -15,8 +15,12 @@ to choose model dimensions that the kernels execute efficiently.
   total layer latency or latency normalized by `hidden_dim * ffn_dim`.
 - `ArchitectureCostModel.sweep_dimension()` exposes tile-efficiency cliffs for
   dimensions that do not land on the 128-wide matmul tile boundary.
+- `generate_nas_candidates()` expands a base config across hidden width, head
+  dimension, GQA ratio, FFN ratio, sliding window, and QK-norm placement while
+  skipping invalid head/KV combinations.
 - `scripts/nas_experiment.py` compares known model shapes against novel
-  candidates and prints a fastest-first NAS ranking.
+  candidates, prints a fastest-first NAS ranking, and ranks the generated
+  candidate space.
 - `scripts/nas_experiment.py --all-hardware` writes a deterministic
   A100/T4/H100 artifact pack with known models, seed candidates, generated
   candidates, and a size-constrained latency ranking.
@@ -38,6 +42,7 @@ The experiment can answer hardware-facing architecture questions such as:
 
 - which candidate has the lowest predicted layer latency on a target GPU;
 - which kernel dominates the layer latency for that candidate;
+- which generated head-dim / GQA / FFN-ratio / QK-norm candidates rank fastest;
 - whether a hidden size, head size, or FFN size falls off the 128-wide tile
   boundary; and
 - whether the same ranking holds across A100, T4, and H100 profiles.

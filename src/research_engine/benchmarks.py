@@ -79,7 +79,7 @@ DEFAULT_BENCHMARKS: list[BenchmarkGoal] = [
         success_metric="Higher task success and lower unforced-error rate on tool tasks.",
         why_it_matters=(
             "Links directly to the broader agent-system thesis and to products like "
-            "PwnKit that depend on reliable tool execution."
+            "pwnkit that depend on reliable tool execution."
         ),
         baseline_guidance=(
             "Compare terminal-first / bash-first execution against a more structured "
