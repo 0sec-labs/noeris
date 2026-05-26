@@ -241,8 +241,22 @@ class NasExperimentTests(unittest.TestCase):
                 report["summary"]["fastest_generated_config"],
                 report["generated_search"]["total_ms_top"][0]["name"],
             )
+            self.assertIn("knob_summary", report)
+            self.assertIn("quality_constrained", report["knob_summary"])
+            self.assertIn(
+                "use_qk_norm",
+                report["knob_summary"]["quality_constrained"],
+            )
             self.assertIn("hidden_dim", report["kernel_cliffs"])
             self.assertIn("ffn_dim", report["kernel_cliffs"])
+
+    def test_generated_candidate_catalog_varies_qk_norm_branch(self) -> None:
+        module = _load_nas_experiment_module()
+        generated = module.generate_candidate_configs()
+
+        self.assertEqual({cfg["use_qk_norm"] for cfg in generated}, {False, True})
+        self.assertTrue(any(cfg["name"].endswith("_qknorm") for cfg in generated))
+        self.assertTrue(any(cfg["name"].endswith("_rope") for cfg in generated))
 
     def test_generated_candidates_and_constrained_ranking_avoid_tiny_models(self) -> None:
         module = _load_nas_experiment_module()
@@ -266,6 +280,29 @@ class NasExperimentTests(unittest.TestCase):
                 by_name[name]["config"]["hidden_dim"],
                 report["quality_constraints"]["min_hidden_dim"],
             )
+
+    def test_build_report_summarizes_architecture_knob_winners(self) -> None:
+        module = _load_nas_experiment_module()
+        report = module.build_report(ArchitectureCostModel("a100"))
+        constrained = report["knob_summary"]["quality_constrained"]
+
+        self.assertIn("head_dim", constrained)
+        self.assertIn("ffn_ratio", constrained)
+        self.assertIn("gqa_group_size", constrained)
+        self.assertIn("window_size", constrained)
+        self.assertIn("use_qk_norm", constrained)
+        self.assertEqual(
+            {row["value"] for row in constrained["use_qk_norm"]},
+            {False, True},
+        )
+
+        qk_rows = constrained["use_qk_norm"]
+        fastest_totals = [row["fastest_total_ms"] for row in qk_rows]
+        self.assertEqual(fastest_totals, sorted(fastest_totals))
+        self.assertLess(
+            qk_rows[0]["fastest_total_ms"],
+            qk_rows[-1]["fastest_total_ms"],
+        )
 
     def test_build_report_preserves_cross_hardware_latency_ordering(self) -> None:
         module = _load_nas_experiment_module()
@@ -322,6 +359,7 @@ class NasExperimentTests(unittest.TestCase):
         self.assertEqual(report["calibration"]["status"], "disabled")
         for hardware in report["hardware_profiles"]:
             self.assertIn("quality_constrained_fastest_config", report["summary"][hardware])
+            self.assertIn("knob_summary", report["reports"][hardware])
 
     def test_cli_writes_multi_hardware_artifacts(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -352,6 +390,7 @@ class NasExperimentTests(unittest.TestCase):
         self.assertEqual(payload["calibration"]["status"], "unavailable")
         self.assertIn("Wrote JSON artifact", result.stdout)
         self.assertIn("Kernel-Aware NAS Multi-Hardware Pack", md_text)
+        self.assertIn("Architecture Knob Winners", md_text)
 
     def test_run_comparison_does_not_mutate_config_lists(self) -> None:
         module = _load_nas_experiment_module()

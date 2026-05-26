@@ -90,6 +90,8 @@ Kernel-aware NAS multi-hardware latency proxy:
 
 - `docs/results/kernel-aware-nas-multihardware.json`
 - `docs/results/kernel-aware-nas-multihardware.md`
+  - Includes constrained architecture knob winners for head dimension, GQA
+    group size, FFN ratio, sliding-window size, and QK-norm/RoPE branch.
 
 Reproducible benchmark-pack command:
 
