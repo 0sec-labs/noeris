@@ -485,6 +485,33 @@ We also ran a single-trial ablation for softmax on A100. The `with_database` con
 
 **Why the negative result?** We believe the dominant factor is the strength of the curated starter configs. Both conditions begin with 4 hand-picked configurations known to work well across LLaMA-scale shapes. Both converge to a near-optimal plateau within 1–2 iterations, leaving little room for cross-run priors to add value. A secondary factor is iteration budget: 5 iterations is short enough that neither condition has time to explore substantially beyond the starter configs.
 
+We ran a second-generation offline replay to test the most important two
+mitigations directly: remove curated starters and evaluate held-out cold shape
+buckets. The v2 protocol holds out the largest measured bucket for each of
+`rmsnorm`, `softmax`, `layernorm`, and `cross_entropy`, excludes curated
+starter configs from every condition, and replays 3 seeds × 6 iterations × 1
+config per iteration over real measured A100 database rows. It compares
+`stateless_random`, `database_seeded` transfer from the remaining shape buckets,
+and `cost_model_ranking`. Raw per-iteration histories are checked in at
+`docs/results/cold-shape-cross-run-ablation-v2.json`.
+
+**Table 4b. Cold-shape replay ablation v2 (held-out buckets, curated configs removed)**
+
+| Condition | Mean final normalized best | Mean final regret | Median iter to 90% | 90% success |
+|---|---:|---:|---:|---:|
+| stateless_random | 0.9604 | 3.96% | 2.0 | 0.92 |
+| database_seeded | 0.9604 | 3.96% | 1.0 | 0.75 |
+| cost_model_ranking | **0.9971** | **0.29%** | 1.0 | **1.00** |
+
+The v2 replay still does not validate database seeding as a standalone
+compounding-learning effect. Database seeding reaches the 90% threshold faster
+when it succeeds, but it has lower 90% success and slightly worse final regret
+than stateless random. The strongest result is the ranking model using the
+database as supervised training data. We therefore frame the persistent database
+as the substrate that enables reproducible replay, cost-model training, and
+selector inputs, not as independent evidence that historical winners alone
+compound into better cold-shape search.
+
 **Experimental designs that would give the approach more room to show value:**
 
 1. **Weaker priors.** Remove curated configs and seed only from the systematic parameter grid. Without hand-picked starters, database historical winners should be significantly more valuable than random grid exploration. §4.6 tests this exactly for the cost model.
@@ -493,9 +520,9 @@ We also ran a single-trial ablation for softmax on A100. The `with_database` con
 
 3. **Harder operators.** Attention and large matmul have 6–7 dimensional parameter spaces vs 3 for the norm operators. Random exploration is less likely to stumble on good configs in high-dimensional spaces, giving database priors more leverage.
 
-4. **Cold novel shapes.** Test on shapes not seen in any previous run but similar to shapes that are in the database. This isolates bucket-level generalization: does the database produce better starting points for new shapes than the curated starters alone?
-
-The framework supports all four experiments via the `ablation` and `triton-iterate` CLI commands.
+4. **Cold novel shapes.** The v2 replay above covers this in an offline,
+   non-exhaustive setting; live GPU confirmation with more held-out buckets is
+   still needed before making a stronger standalone cross-run-learning claim.
 
 ### 4.6 Cost Model Validation (Positive Result)
 
@@ -1035,7 +1062,7 @@ The empirical comparison against AutoKernel deserves emphasis. AutoKernel is sta
 
 ## 6. Limitations
 
-1. **Cross-run learning ablation is negative.** As discussed in §4.5, we do not yet have empirical evidence that the database-guided LLM proposer outperforms stateless search in the tested regime. The cross-run learning claim rests on architecture and on the proposed experimental designs (weaker priors, longer budgets), not yet on measured gains.
+1. **Cross-run learning ablation is negative.** As discussed in §4.5, neither the original live 5-iteration ablation nor the v2 cold-shape replay shows database seeding as a standalone winner. The persistent database is supported as a replayable evidence store and as training data for ranking models; standalone compounding gains from historical winners remain unproven.
 
 2. **Cost model ablation uses a weak baseline.** The §4.6 ablation compares filtered vs. unfiltered random grid search with curated configs disabled. This is the right design for isolating the cost model's contribution, but the baseline is deliberately weakened. A stronger comparison — cost model vs. LLM proposer alone — is needed to establish the cost model's independent value.
 
@@ -1069,7 +1096,7 @@ The central contribution has evolved from "a cost model improves search" to a co
 
 Hardware cross-learning experiments (§4.9) establish that A100-trained cost model rankings transfer to H100 with Spearman ρ = 0.967 and 6.4× top-5 lift over random selection, despite absolute predictions being miscalibrated by the A100→H100 bandwidth gap (~40–80%). This confirms that the ranking component of the cost model generalizes across GPU generations without retraining.
 
-The initial cross-run learning ablation (§4.5) remains negative: at 5 iterations with strong curated priors, database-guided LLM proposals do not outperform stateless proposals within the measurement noise floor. We interpret this as evidence that strong curated priors dominate the result, not as evidence against persistent cross-run learning in principle. Demonstrating that contribution requires weaker priors, longer budgets, and colder novel shapes — all supported by the existing CLI but not yet run at scale.
+The cross-run learning ablation (§4.5) remains negative after the v2 cold-shape replay: at 5 live iterations with strong curated priors, database-guided LLM proposals do not outperform stateless proposals within the measurement noise floor; with curated starters removed and cold buckets held out, database-seeded transfer reaches 90% faster on successful runs but does not improve final regret or success rate over stateless random. The positive evidence is narrower: the persistent database is valuable as replayable training data for ranking models, where the v2 cost-model condition reaches 0.997 mean final normalized throughput and 0.29% mean regret. We therefore avoid claiming standalone compounding gains from database seeding.
 
 **Future work: fused RMSNorm+matmul (`fused_norm_linear`).** We have built a prototype kernel that fuses RMSNorm normalization with the subsequent linear projection (matmul) into a single Triton kernel, eliminating the materialization of the normalized intermediate to HBM. The kernel uses a two-pass approach: pass 1 computes `rstd = rsqrt(mean(x^2) + eps)` across the row, pass 2 normalizes in-register and immediately accumulates the matmul dot product — the normalized activations never touch HBM. **Prior art:** Mirage (Zhu et al., OSDI 2025) demonstrates that RMSNorm+matmul fusion is possible by exploiting the commutativity of normalization and linear projection, achieving 1.5–1.7× speedup. Our prototype is an independent implementation in Triton with parameterized autotuning, complementary to Mirage's algebraic derivation and superoptimizer-based approach. Existing fusions like Liger's `fused_linear_cross_entropy` fuse the *output* side of the linear layer, not the *input* normalization; Mirage and our prototype both target the input side. The prototype has a correctness issue on T4 that requires debugging before performance numbers can be reported. If validated, this fusion would eliminate one of the remaining HBM round-trips in the transformer block — the RMSNorm output write + QKV projection read — and could compound with the QK-norm+RoPE prologue fusion for a deeper end-to-end gain.
 

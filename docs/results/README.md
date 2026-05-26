@@ -86,6 +86,11 @@ Cross-vendor zero-shot scaffold (MI300X label, no target measurements):
 - `docs/results/cross-vendor-zero-shot-scaffold-mi300x.json`
 - `docs/results/cross-vendor-zero-shot-scaffold-mi300x.md`
 
+Cold-shape cross-run learning ablation v2:
+
+- `docs/results/cold-shape-cross-run-ablation-v2.json`
+- `docs/results/cold-shape-cross-run-ablation-v2.md`
+
 Kernel-aware NAS multi-hardware latency proxy:
 
 - `docs/results/kernel-aware-nas-multihardware.json`
