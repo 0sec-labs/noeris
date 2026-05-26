@@ -1,4 +1,7 @@
 {
+  "artifact_type": "cross_vendor_zero_shot_scaffold",
+  "measurement_status": "prediction_only_no_amd_measurements",
+  "is_measured_evidence": false,
   "generated_at_utc": "2026-05-07T17:43:45.017336+00:00",
   "db_path": ".noeris/triton-configs.json",
   "training": {

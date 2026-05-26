@@ -9,7 +9,11 @@ from tests import _pathfix  # noqa: F401
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO / "scripts"))
 
-from cross_vendor_transfer_eval import _to_md, evaluate_transfer  # noqa: E402
+from cross_vendor_transfer_eval import (  # noqa: E402
+    _to_md,
+    evaluate_transfer,
+    validate_measured_artifact,
+)
 
 
 class CrossVendorTransferEvalTests(unittest.TestCase):
@@ -49,6 +53,10 @@ class CrossVendorTransferEvalTests(unittest.TestCase):
             "generated_at_utc": "2026-05-07T00:00:00+00:00",
             "prediction_artifact": "docs/results/pred.json",
             "measured_artifact": "docs/results/meas.json",
+            "measurement_validation": {
+                "status": "passed_real_measurement_checks",
+                "row_count": 3,
+            },
             "operator_summary": {
                 "attention": {
                     "bucket_count": 1,
@@ -60,7 +68,59 @@ class CrossVendorTransferEvalTests(unittest.TestCase):
         }
         md = _to_md(report)
         self.assertIn("mean spearman", md)
+        self.assertIn("Measurement validation", md)
         self.assertIn("0.7500", md)
+
+    def test_validate_measured_artifact_rejects_template_markers(self) -> None:
+        measured = {
+            "artifact_type": "cross_vendor_measured_template",
+            "measurement_status": "placeholder_not_measured",
+            "is_measured_evidence": False,
+            "measured": {
+                "attention": {
+                    "bucket_a": [
+                        {
+                            "config_id": "c1",
+                            "metric": 0.0,
+                            "latency_ms": 0.0,
+                            "notes": "placeholder: replace with measured AMD result",
+                        }
+                    ]
+                }
+            },
+        }
+        with self.assertRaisesRegex(ValueError, "not eligible"):
+            validate_measured_artifact(measured, measured_path=Path("measured-template.json"))
+
+    def test_validate_measured_artifact_accepts_positive_rows(self) -> None:
+        measured = {
+            "measured": {
+                "attention": {
+                    "bucket_a": [
+                        {"config_id": "c1", "metric": 95.0, "latency_ms": 1.05},
+                        {"config_id": "c2", "metric": 90.0, "latency_ms": 1.10},
+                    ]
+                }
+            }
+        }
+        validation = validate_measured_artifact(measured, measured_path=Path("measured-real.json"))
+        self.assertEqual(validation["row_count"], 2)
+
+    def test_validate_measured_artifact_rejects_template_path_even_if_positive(self) -> None:
+        measured = {
+            "measured": {
+                "attention": {
+                    "bucket_a": [
+                        {"config_id": "c1", "metric": 95.0, "latency_ms": 1.05},
+                    ]
+                }
+            }
+        }
+        with self.assertRaisesRegex(ValueError, "measured path contains"):
+            validate_measured_artifact(
+                measured,
+                measured_path=Path("docs/results/cross-vendor-measured-mi300x-template.json"),
+            )
 
 
 if __name__ == "__main__":

@@ -1,31 +1,240 @@
 {
+  "artifact_type": "cross_vendor_measured_template",
+  "measurement_status": "placeholder_not_measured",
+  "is_measured_evidence": false,
+  "hardware_access": "deferred_no_amd_hardware_in_repo_context",
+  "generated_at_utc": "2026-05-26T17:16:06.271728+00:00",
+  "generated_from_prediction": "docs/results/cross-vendor-zero-shot-scaffold-mi300x-v2.json",
+  "instructions": "Run the listed candidates on real MI300X/MI250 hardware, replace placeholder metric/latency rows with positive measured values, and save that as docs/results/cross-vendor-measured-mi300x.json before running cross_vendor_transfer_eval.py for paper-facing claims.",
   "measured": {
+    "matmul": {},
+    "rmsnorm": {},
+    "softmax": {},
+    "layernorm": {},
+    "cross_entropy": {},
     "attention": {
       "short_64": [
         {
           "config_id": "m64_n64_w2_s3",
-          "metric": 120.0,
-          "latency_ms": 1.2
+          "metric": 0.0,
+          "latency_ms": 0.0,
+          "notes": "placeholder: replace with measured AMD metric and latency"
         },
         {
           "config_id": "m64_n64_w4_s3",
-          "metric": 117.5,
-          "latency_ms": 1.22
+          "metric": 0.0,
+          "latency_ms": 0.0,
+          "notes": "placeholder: replace with measured AMD metric and latency"
         },
         {
           "config_id": "m64_n128_w4_s3",
-          "metric": 115.0,
-          "latency_ms": 1.25
+          "metric": 0.0,
+          "latency_ms": 0.0,
+          "notes": "placeholder: replace with measured AMD metric and latency"
         },
         {
           "config_id": "m64_n32_w2_s4",
-          "metric": 112.0,
-          "latency_ms": 1.28
+          "metric": 0.0,
+          "latency_ms": 0.0,
+          "notes": "placeholder: replace with measured AMD metric and latency"
         },
         {
           "config_id": "m64_n64_w4_s2",
-          "metric": 110.0,
-          "latency_ms": 1.3
+          "metric": 0.0,
+          "latency_ms": 0.0,
+          "notes": "placeholder: replace with measured AMD metric and latency"
+        }
+      ],
+      "short_128": [
+        {
+          "config_id": "m128_n128_w8_s2",
+          "metric": 0.0,
+          "latency_ms": 0.0,
+          "notes": "placeholder: replace with measured AMD metric and latency"
+        },
+        {
+          "config_id": "m128_n64_w8_s3",
+          "metric": 0.0,
+          "latency_ms": 0.0,
+          "notes": "placeholder: replace with measured AMD metric and latency"
+        },
+        {
+          "config_id": "m128_n32_w4_s2",
+          "metric": 0.0,
+          "latency_ms": 0.0,
+          "notes": "placeholder: replace with measured AMD metric and latency"
+        },
+        {
+          "config_id": "m128_n32_w4_s3",
+          "metric": 0.0,
+          "latency_ms": 0.0,
+          "notes": "placeholder: replace with measured AMD metric and latency"
+        },
+        {
+          "config_id": "m64_n64_w4_s2",
+          "metric": 0.0,
+          "latency_ms": 0.0,
+          "notes": "placeholder: replace with measured AMD metric and latency"
+        }
+      ],
+      "med_128": [
+        {
+          "config_id": "m128_n128_w8_s2",
+          "metric": 0.0,
+          "latency_ms": 0.0,
+          "notes": "placeholder: replace with measured AMD metric and latency"
+        },
+        {
+          "config_id": "m128_n64_w8_s3",
+          "metric": 0.0,
+          "latency_ms": 0.0,
+          "notes": "placeholder: replace with measured AMD metric and latency"
+        },
+        {
+          "config_id": "m128_n32_w4_s2",
+          "metric": 0.0,
+          "latency_ms": 0.0,
+          "notes": "placeholder: replace with measured AMD metric and latency"
+        },
+        {
+          "config_id": "m128_n32_w4_s3",
+          "metric": 0.0,
+          "latency_ms": 0.0,
+          "notes": "placeholder: replace with measured AMD metric and latency"
+        },
+        {
+          "config_id": "m128_n128_w8_s3",
+          "metric": 0.0,
+          "latency_ms": 0.0,
+          "notes": "placeholder: replace with measured AMD metric and latency"
+        }
+      ],
+      "long_64": [
+        {
+          "config_id": "m128_n64_w4_s4",
+          "metric": 0.0,
+          "latency_ms": 0.0,
+          "notes": "placeholder: replace with measured AMD metric and latency"
+        },
+        {
+          "config_id": "m64_n64_w2_s3",
+          "metric": 0.0,
+          "latency_ms": 0.0,
+          "notes": "placeholder: replace with measured AMD metric and latency"
+        },
+        {
+          "config_id": "m64_n128_w4_s3",
+          "metric": 0.0,
+          "latency_ms": 0.0,
+          "notes": "placeholder: replace with measured AMD metric and latency"
+        },
+        {
+          "config_id": "m64_n64_w4_s2",
+          "metric": 0.0,
+          "latency_ms": 0.0,
+          "notes": "placeholder: replace with measured AMD metric and latency"
+        },
+        {
+          "config_id": "m64_n64_w4_s3",
+          "metric": 0.0,
+          "latency_ms": 0.0,
+          "notes": "placeholder: replace with measured AMD metric and latency"
+        }
+      ],
+      "long_128": [
+        {
+          "config_id": "m128_n128_w8_s2",
+          "metric": 0.0,
+          "latency_ms": 0.0,
+          "notes": "placeholder: replace with measured AMD metric and latency"
+        },
+        {
+          "config_id": "m128_n64_w8_s3",
+          "metric": 0.0,
+          "latency_ms": 0.0,
+          "notes": "placeholder: replace with measured AMD metric and latency"
+        },
+        {
+          "config_id": "m128_n32_w4_s2",
+          "metric": 0.0,
+          "latency_ms": 0.0,
+          "notes": "placeholder: replace with measured AMD metric and latency"
+        },
+        {
+          "config_id": "m128_n32_w4_s3",
+          "metric": 0.0,
+          "latency_ms": 0.0,
+          "notes": "placeholder: replace with measured AMD metric and latency"
+        },
+        {
+          "config_id": "m128_n32_w8_s3",
+          "metric": 0.0,
+          "latency_ms": 0.0,
+          "notes": "placeholder: replace with measured AMD metric and latency"
+        }
+      ],
+      "llama7b": [
+        {
+          "config_id": "m128_n128_w8_s2",
+          "metric": 0.0,
+          "latency_ms": 0.0,
+          "notes": "placeholder: replace with measured AMD metric and latency"
+        },
+        {
+          "config_id": "m128_n64_w8_s3",
+          "metric": 0.0,
+          "latency_ms": 0.0,
+          "notes": "placeholder: replace with measured AMD metric and latency"
+        },
+        {
+          "config_id": "m128_n32_w4_s2",
+          "metric": 0.0,
+          "latency_ms": 0.0,
+          "notes": "placeholder: replace with measured AMD metric and latency"
+        },
+        {
+          "config_id": "m128_n32_w4_s3",
+          "metric": 0.0,
+          "latency_ms": 0.0,
+          "notes": "placeholder: replace with measured AMD metric and latency"
+        },
+        {
+          "config_id": "m128_n32_w8_s3",
+          "metric": 0.0,
+          "latency_ms": 0.0,
+          "notes": "placeholder: replace with measured AMD metric and latency"
+        }
+      ],
+      "mistral": [
+        {
+          "config_id": "m128_n128_w8_s3",
+          "metric": 0.0,
+          "latency_ms": 0.0,
+          "notes": "placeholder: replace with measured AMD metric and latency"
+        },
+        {
+          "config_id": "m128_n64_w8_s4",
+          "metric": 0.0,
+          "latency_ms": 0.0,
+          "notes": "placeholder: replace with measured AMD metric and latency"
+        },
+        {
+          "config_id": "m128_n128_w8_s2",
+          "metric": 0.0,
+          "latency_ms": 0.0,
+          "notes": "placeholder: replace with measured AMD metric and latency"
+        },
+        {
+          "config_id": "m128_n64_w8_s3",
+          "metric": 0.0,
+          "latency_ms": 0.0,
+          "notes": "placeholder: replace with measured AMD metric and latency"
+        },
+        {
+          "config_id": "m128_n32_w4_s2",
+          "metric": 0.0,
+          "latency_ms": 0.0,
+          "notes": "placeholder: replace with measured AMD metric and latency"
         }
       ]
     }
