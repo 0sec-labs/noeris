@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--prediction-json",
@@ -20,7 +20,7 @@ def main() -> int:
         default="docs/results/cross-vendor-measured-mi300x-template.json",
     )
     parser.add_argument("--top-k", type=int, default=5)
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     prediction_path = Path(args.prediction_json)
     payload = json.loads(prediction_path.read_text(encoding="utf-8"))
