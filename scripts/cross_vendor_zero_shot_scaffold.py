@@ -36,6 +36,8 @@ def _to_md(report: dict) -> str:
         "",
         f"Source hardware filter: `{report['source_hardware_filter']}`",
         f"Target hardware label: `{report['target_hardware_label']}`",
+        f"Measurement status: `{report['measurement_status']}`",
+        f"Measured AMD evidence: `{str(report['is_measured_evidence']).lower()}`",
         "",
         "| Operator | Buckets with candidates | total candidates |",
         "|---|---:|---:|",
@@ -125,6 +127,9 @@ def main() -> int:
         }
 
     report = {
+        "artifact_type": "cross_vendor_zero_shot_scaffold",
+        "measurement_status": "prediction_only_no_amd_measurements",
+        "is_measured_evidence": False,
         "generated_at_utc": datetime.now(timezone.utc).isoformat(),
         "db_path": str(db_path),
         "training": train_result,

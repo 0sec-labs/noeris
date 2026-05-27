@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -20,6 +21,74 @@ def _load_json(path: Path) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def _contains_marker(value: object, markers: tuple[str, ...]) -> str | None:
+    text = str(value or "").lower()
+    return next((marker for marker in markers if marker in text), None)
+
+
+def _positive_finite(row: dict, field: str, label: str) -> None:
+    try:
+        value = float(row[field])
+    except (KeyError, TypeError, ValueError) as exc:
+        raise ValueError(f"{label} is missing numeric {field}") from exc
+    if not math.isfinite(value) or value <= 0.0:
+        raise ValueError(f"{label} has non-positive {field}: {value}")
+
+
+def validate_measured_artifact(measured: dict, *, measured_path: Path | None = None) -> dict:
+    """Reject scaffold/template artifacts before computing paper-facing metrics."""
+
+    artifact_markers = ("placeholder", "template", "scaffold", "deferred", "sample")
+    row_markers = ("placeholder", "fill", "replace", "not measured", "scaffold", "template")
+    reasons: list[str] = []
+
+    if measured.get("is_measured_evidence") is False:
+        reasons.append("is_measured_evidence=false")
+
+    for field in ("artifact_type", "measurement_status", "status"):
+        marker = _contains_marker(measured.get(field), artifact_markers)
+        if marker:
+            reasons.append(f"{field} contains {marker!r}")
+
+    if measured_path is not None:
+        marker = _contains_marker(measured_path.name, artifact_markers)
+        if marker:
+            reasons.append(f"measured path contains {marker!r}")
+
+    if reasons:
+        raise ValueError(
+            "measured AMD artifact is not eligible for paper-facing evaluation: "
+            + "; ".join(reasons)
+        )
+
+    measured_rows = measured.get("measured")
+    if not isinstance(measured_rows, dict):
+        raise ValueError("measured AMD artifact must contain a measured object")
+
+    row_count = 0
+    for operator, buckets in measured_rows.items():
+        if not isinstance(buckets, dict):
+            raise ValueError(f"measured.{operator} must be an object of buckets")
+        for bucket, rows in buckets.items():
+            if not isinstance(rows, list):
+                raise ValueError(f"measured.{operator}.{bucket} must be a list")
+            for idx, row in enumerate(rows):
+                label = f"measured.{operator}.{bucket}[{idx}]"
+                if not isinstance(row, dict):
+                    raise ValueError(f"{label} must be an object")
+                marker = _contains_marker(row.get("notes"), row_markers)
+                if marker:
+                    raise ValueError(f"{label} notes contain placeholder marker {marker!r}")
+                _positive_finite(row, "metric", label)
+                _positive_finite(row, "latency_ms", label)
+                row_count += 1
+
+    if row_count == 0:
+        raise ValueError("measured AMD artifact contains no measurement rows")
+
+    return {"status": "passed_real_measurement_checks", "row_count": row_count}
+
+
 def _to_md(report: dict) -> str:
     lines = [
         "# Cross-Vendor Transfer Evaluation",
@@ -28,6 +97,14 @@ def _to_md(report: dict) -> str:
         "",
         f"Prediction artifact: `{report['prediction_artifact']}`",
         f"Measured artifact: `{report['measured_artifact']}`",
+    ]
+    validation = report.get("measurement_validation", {})
+    if validation:
+        lines.append(
+            f"Measurement validation: `{validation.get('status', 'passed')}` "
+            f"({validation.get('row_count', 0)} rows)"
+        )
+    lines += [
         "",
         "| Operator | Buckets | mean spearman | mean top-k hit | mean latency regret |",
         "|---|---:|---:|---:|---:|",
@@ -126,6 +203,10 @@ def main() -> int:
     measured_path = Path(args.measured_json)
     prediction = _load_json(prediction_path)
     measured = _load_json(measured_path)
+    try:
+        measurement_validation = validate_measured_artifact(measured, measured_path=measured_path)
+    except ValueError as exc:
+        parser.error(str(exc))
 
     eval_out = evaluate_transfer(prediction=prediction, measured=measured, top_k=args.top_k)
     cmd = f"python scripts/cross_vendor_transfer_eval.py --prediction-json {args.prediction_json} --measured-json {args.measured_json}"
@@ -134,6 +215,7 @@ def main() -> int:
         "environment": collect_environment(command=cmd),
         "prediction_artifact": str(prediction_path),
         "measured_artifact": str(measured_path),
+        "measurement_validation": measurement_validation,
         "top_k": args.top_k,
         **eval_out,
     }
