@@ -7,9 +7,14 @@ import pytest
 from research_engine.models import Hypothesis
 from research_engine.zero_research import (
     CandidateProposal,
-    ImprovementEnvelope,
-    build_improvement_candidates,
-    freeze_allowed_knobs,
+    GeneratorIdentity,
+    build_improvement_challengers,
+)
+
+
+GENERATOR = GeneratorIdentity(
+    id="noeris.world-model-v1",
+    digest=f"sha256:{'a' * 64}",
 )
 
 
@@ -23,148 +28,103 @@ def hypothesis(title: str, priority: float) -> Hypothesis:
     )
 
 
-def envelope() -> ImprovementEnvelope:
-    return ImprovementEnvelope(
-        project="pwnkit",
-        manifest_id="cybergym-v1",
-        evaluator_digest="sha256:evaluator",
-        development_corpus_digest="sha256:development",
-        held_out_corpus_digest="sha256:held-out",
-        negative_control_corpus_digest="sha256:foxguard-controls",
-        development_case_ids=("dev-1", "dev-2"),
-        held_out_case_ids=("held-1", "held-2"),
-        negative_control_case_ids=("control-1",),
-        min_held_out_cases=20,
-        min_negative_control_cases=20,
-        min_success_rate_delta=0.1,
-        max_false_positive_rate_delta=0.0,
-        max_cost_per_success_increase_ratio=0.2,
-        max_inconclusive_rate=0.1,
-        require_significance=True,
-        max_runs=40,
-        max_usd=100,
-        max_wall_clock_minutes=180,
-        allowed_knobs_by_kind=freeze_allowed_knobs(
-            {"prompt": {"source_audit.hypothesis"}, "feature_flag": {"web_search"}}
-        ),
-        max_candidates=1,
-    )
-
-
 def proposal(title: str, text: str = "Inspect parser seeds first.") -> CandidateProposal:
     return CandidateProposal(
         hypothesis_title=title,
         change_kind="prompt",
         knobs={"source_audit.hypothesis": text},
-        source_refs=("github:0sec-labs/0sec#1026",),
+        source_refs=("artifact:failure-cluster:abc123",),
     )
 
 
-def test_emits_highest_priority_candidate_in_0brain_schema() -> None:
-    candidates = build_improvement_candidates(
+def build(hypotheses: list[Hypothesis], proposals: list[CandidateProposal], **kwargs):
+    return build_improvement_challengers(
+        hypotheses,
+        proposals,
+        target_project="pwnkit",
+        generator=GENERATOR,
+        **kwargs,
+    )
+
+
+def test_emits_only_generator_owned_fields_in_priority_order() -> None:
+    candidates = build(
         [hypothesis("lower", 0.2), hypothesis("higher", 0.9)],
         [proposal("lower"), proposal("higher")],
-        envelope(),
-        created_at="2026-07-15T21:00:00Z",
+        max_candidates=1,
     )
 
     assert len(candidates) == 1
     candidate = candidates[0]
-    assert candidate["project"] == "pwnkit"
+    assert candidate["targetProject"] == "pwnkit"
     assert candidate["hypothesis"]["statement"] == "higher"
-    assert candidate["evaluation"]["evaluatorDigest"] == "sha256:evaluator"
-    assert candidate["authority"] == {
-        "mode": "draft_pr_only",
-        "evaluatorChangesAllowed": False,
-        "autoMergeAllowed": False,
-        "externalPublicationAllowed": False,
+    assert set(candidate) == {
+        "schemaVersion", "kind", "id", "targetProject", "generator", "hypothesis", "change"
     }
+    assert not ({"budget", "evaluation", "authority", "score"} & set(candidate))
 
 
-def test_candidate_id_is_deterministic_for_same_intervention() -> None:
-    args = ([hypothesis("focused", 1.0)], [proposal("focused")], envelope())
-    first = build_improvement_candidates(
-        *args, created_at="2026-07-15T21:00:00Z"
-    )[0]
-    second = build_improvement_candidates(
-        *args, created_at="2026-07-16T21:00:00Z"
+def test_challenger_id_binds_all_generator_owned_content() -> None:
+    first = build([hypothesis("focused", 1.0)], [proposal("focused")])[0]
+    second = build([hypothesis("focused", 1.0)], [proposal("focused")])[0]
+    changed = build(
+        [replace(hypothesis("focused", 1.0), rationale="Different rationale")],
+        [proposal("focused")],
     )[0]
     assert first["id"] == second["id"]
+    assert first["id"] != changed["id"]
+    assert len(first["id"].removeprefix("imp_pwnkit_")) == 64
 
 
-def test_emits_diverse_challengers_for_the_same_hypothesis() -> None:
-    env = replace(envelope(), max_candidates=5)
-    candidates = build_improvement_candidates(
+def test_emits_diverse_challengers_and_caps_batch() -> None:
+    candidates = build(
         [hypothesis("parser cluster", 1.0)],
         [
-            proposal("parser cluster", "Inspect parser seeds first."),
-            proposal("parser cluster", "Trace state transitions first."),
+            proposal("parser cluster", f"Intervention {index}")
+            for index in range(7)
         ],
-        env,
-        created_at="2026-07-15T21:00:00Z",
     )
-    assert len(candidates) == 2
-    assert len({candidate["id"] for candidate in candidates}) == 2
+    assert len(candidates) == 5
+    assert len({candidate["id"] for candidate in candidates}) == 5
 
 
 def test_rejects_duplicate_interventions() -> None:
     with pytest.raises(ValueError, match="duplicate candidate intervention"):
-        build_improvement_candidates(
+        build(
             [hypothesis("focused", 1.0)],
             [proposal("focused"), proposal("focused")],
-            replace(envelope(), max_candidates=5),
-            created_at="2026-07-15T21:00:00Z",
         )
 
 
-def test_rejects_knob_not_allowlisted_by_evaluator() -> None:
-    unsafe = CandidateProposal(
-        hypothesis_title="focused",
-        change_kind="prompt",
-        knobs={"evaluator.threshold": 0},
-        source_refs=("artifact:failure.json",),
-    )
-    with pytest.raises(ValueError, match="unallowlisted knobs"):
-        build_improvement_candidates(
-            [hypothesis("focused", 1.0)],
-            [unsafe],
-            envelope(),
-            created_at="2026-07-15T21:00:00Z",
-        )
-
-
-def test_rejects_corpus_leakage() -> None:
-    leaking = replace(envelope(), held_out_case_ids=("dev-1",))
-    with pytest.raises(ValueError, match="partitions must be disjoint"):
-        build_improvement_candidates(
-            [hypothesis("focused", 1.0)],
-            [proposal("focused")],
-            leaking,
-            created_at="2026-07-15T21:00:00Z",
-        )
-
-
-def test_rejects_unknown_hypothesis() -> None:
+def test_rejects_unknown_hypothesis_or_unbounded_change() -> None:
     with pytest.raises(ValueError, match="unknown hypothesis"):
-        build_improvement_candidates(
+        build([hypothesis("known", 1.0)], [proposal("invented")])
+    with pytest.raises(ValueError, match="unsupported change kind"):
+        build(
             [hypothesis("known", 1.0)],
-            [proposal("invented")],
-            envelope(),
-            created_at="2026-07-15T21:00:00Z",
+            [replace(proposal("known"), change_kind="code_rewrite")],
         )
 
 
-def test_rejects_non_finite_knob_value() -> None:
+@pytest.mark.parametrize("value", [1.5, float("nan"), 2**53])
+def test_rejects_non_interoperable_number(value: object) -> None:
     invalid = CandidateProposal(
         hypothesis_title="focused",
         change_kind="prompt",
-        knobs={"source_audit.hypothesis": float("nan")},
+        knobs={"source_audit.limit": value},
         source_refs=("artifact:failure.json",),
     )
-    with pytest.raises(ValueError, match="must be finite"):
-        build_improvement_candidates(
+    with pytest.raises(ValueError, match="safe integer|string, boolean"):
+        build([hypothesis("focused", 1.0)], [invalid])
+
+
+def test_rejects_unpinned_generator_or_oversized_policy() -> None:
+    with pytest.raises(ValueError, match="lowercase sha256"):
+        build_improvement_challengers(
             [hypothesis("focused", 1.0)],
-            [invalid],
-            envelope(),
-            created_at="2026-07-15T21:00:00Z",
+            [proposal("focused")],
+            target_project="pwnkit",
+            generator=replace(GENERATOR, digest="sha256:not-real"),
         )
+    with pytest.raises(ValueError, match="max_candidates"):
+        build([hypothesis("focused", 1.0)], [proposal("focused")], max_candidates=6)

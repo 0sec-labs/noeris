@@ -90,6 +90,26 @@ That means:
 - no long-running multi-agent runtime yet
 - no autonomous background loops until the single-cycle contract is solid
 
+## 0research Challenger Boundary
+
+Noeris can now turn matching world-model hypotheses into a deterministic batch
+of at most five complete kernel configurations. This is a proposal boundary,
+not an evaluator:
+
+- only parameters declared by the operator are copied into a challenger;
+- list-valued hypotheses expand into scalar, executable configurations over a
+  complete validated baseline;
+- out-of-domain and shared-memory-invalid configurations are rejected;
+- every usable hypothesis must carry durable source references;
+- the output binds generator identity, rationale, evidence references, and the
+  full configuration into a content-addressed ID;
+- the output cannot contain budgets, corpora, scores, evaluator settings,
+  promotion authority, or measured outcomes.
+
+The trusted 0brain controller separately pins the generator and knob allowlist,
+injects a sealed manifest plus disjoint evaluation corpora, and grants only
+draft-PR authority. GPU benchmarking and grading remain independent of Noeris.
+
 ## What To Defer
 
 - generalized multi-domain research
