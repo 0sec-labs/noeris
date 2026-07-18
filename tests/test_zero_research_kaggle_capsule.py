@@ -20,6 +20,13 @@ def write_capsule(path, capsule):
     path.write_text(f"{canonical_json(capsule)}\n")
 
 
+def v2_environment():
+    value = environment(); value["numpyVersion"] = "2.1.3"
+    release = {key: value[key] for key in ("imageBuildDate", "imageGitCommit", "cudaVersion", "pythonVersion", "torchVersion", "tritonVersion", "numpyVersion")}
+    value["runtimeFingerprintDigest"] = sha256(f"noeris-kaggle-runtime-v1\0{canonical_json(release)}")
+    return value
+
+
 def package(tmp_path):
     root = tmp_path / "package"; root.mkdir(mode=0o700, parents=True)
     run_bytes = b"# fixed generic offline template\n"
@@ -132,7 +139,7 @@ def test_v2_capture_binds_capsule_and_template_without_git_and_recovers(tmp_path
     identity = {"repositoryCommitSha": repository["commitSha"], "repositoryTreeDigest": repository["treeDigest"], "evaluatorDigest": evaluator["digest"], "executionTemplateDigest": verified["executionTemplate"]["templateDigest"]}
     moments = iter([capture_module.datetime(2026, 7, 18, 0, 0, tzinfo=capture_module.timezone.utc), capture_module.datetime(2026, 7, 18, 0, 1, tzinfo=capture_module.timezone.utc)])
     output = tmp_path / "output"
-    first = _run_capture_core(candidate=verified["candidate"], authorization=verified["controllerEnvelope"], plan_value=plan, allocation_id=verified["allocationId"], output_directory=str(output), kernel_ref=verified["kernelRef"], environment=environment(), worker_identity=identity, backend=Backend(), execution_capsule_digest=verified["capsuleDigest"], execution_template_digest=verified["executionTemplate"]["templateDigest"], now=lambda: next(moments), publisher=os.rename)
+    first = _run_capture_core(candidate=verified["candidate"], authorization=verified["controllerEnvelope"], plan_value=plan, allocation_id=verified["allocationId"], output_directory=str(output), kernel_ref=verified["kernelRef"], environment=v2_environment(), worker_identity=identity, backend=Backend(), execution_capsule_digest=verified["capsuleDigest"], execution_template_digest=verified["executionTemplate"]["templateDigest"], now=lambda: next(moments), publisher=os.rename)
     assert first["capture"]["contract"] == "noeris-kaggle-allocation-capture-v2"
     assert first["capture"]["executionCapsuleDigest"] == capsule["capsuleDigest"]
     assert first["capture"]["executionTemplateDigest"] == capsule["executionTemplate"]["templateDigest"]
@@ -143,7 +150,7 @@ def test_v2_capture_binds_capsule_and_template_without_git_and_recovers(tmp_path
 def test_fixed_capsule_wrapper_has_no_git_identity_dependency(tmp_path, monkeypatch):
     root, capsule_path, _capsule = package(tmp_path)
     monkeypatch.setattr(capture_module.subprocess, "run", lambda *_args, **_kwargs: pytest.fail("git invoked by capsule wrapper"))
-    monkeypatch.setattr(capture_module, "_capture_environment", lambda: environment())
+    monkeypatch.setattr(capture_module, "_capture_environment", lambda **_kwargs: v2_environment())
     monkeypatch.setattr(capture_module, "TorchTritonBackend", Backend)
     captured = {}
     monkeypatch.setattr(capture_module, "_run_capture_core", lambda **kwargs: captured.update(kwargs) or {"allocationId": kwargs["allocation_id"]})
@@ -161,7 +168,7 @@ def test_private_core_and_legacy_wrapper_reject_v2_drift_before_gpu_or_git(tmp_p
     identity = {"repositoryCommitSha": repository["commitSha"], "repositoryTreeDigest": repository["treeDigest"], "evaluatorDigest": evaluator["digest"], "executionTemplateDigest": verified["executionTemplate"]["templateDigest"]}
     backend = Backend()
     with pytest.raises(ValueError, match="exact execution capsule"):
-        _run_capture_core(candidate=verified["candidate"], authorization=verified["controllerEnvelope"], plan_value=plan, allocation_id=verified["allocationId"], output_directory=str(tmp_path / "output"), kernel_ref=verified["kernelRef"], environment=environment(), worker_identity=identity, backend=backend, execution_capsule_digest="not-a-digest", execution_template_digest=verified["executionTemplate"]["templateDigest"], publisher=os.rename)
+        _run_capture_core(candidate=verified["candidate"], authorization=verified["controllerEnvelope"], plan_value=plan, allocation_id=verified["allocationId"], output_directory=str(tmp_path / "output"), kernel_ref=verified["kernelRef"], environment=v2_environment(), worker_identity=identity, backend=backend, execution_capsule_digest="not-a-digest", execution_template_digest=verified["executionTemplate"]["templateDigest"], publisher=os.rename)
     assert backend.calls == []
 
     documents = {"candidate": verified["candidate"], "authorization": verified["controllerEnvelope"], "plan": plan}

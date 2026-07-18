@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import importlib.util
 import json
 import os
 import stat
@@ -25,6 +26,15 @@ class Backend:
         second = struct.pack("<2d", 1.0, 3.0) if self.nondeterministic else reference
         timings = tuple(1_000_000 + index * 1_000 for index in range(samples - int(self.bad_timings)))
         return RawMeasurement(reference, (reference, second), timings, 0.0, 0.0, warmups)
+
+
+@pytest.mark.skipif(importlib.util.find_spec("torch") is None, reason="PyTorch runtime is unavailable")
+def test_real_tensor_serialization_is_pinned_little_endian_float64():
+    import torch
+    value = torch.tensor([1.0, -2.5], dtype=torch.float64).contiguous()
+    assert worker_module.TorchTritonBackend._float64_le_bytes(value) == struct.pack("<2d", 1.0, -2.5)
+    with pytest.raises(ValueError, match="CPU float64"):
+        worker_module.TorchTritonBackend._float64_le_bytes(value.to(torch.float32))
 
 
 def run(tmp_path, *, backend=None, mutate=None, signer=None, verifier=None, publisher=os.rename, clock=None):
