@@ -129,6 +129,35 @@ The command fails if it cannot produce at least one valid challenger. It never
 runs a benchmark, updates the world model, or supplies evaluation and promotion
 policy.
 
+### Untrusted kernel evidence proposals
+
+`zero_research_tournament._build_untrusted_tournament_proposal` is a private,
+dependency-injected adapter-development seam for one controller-planned
+allocation. It requires four independent
+inputs: the exact projected candidate, the content-addressed plan, the exact
+signed private controller envelope, and the runtime environment identity. It
+reverifies the controller signature and candidate/authorization digests, then
+rederives every seed and per-case arm order from the signed nonce before calling
+an in-process GPU runner.
+
+The runner must return reference correctness, two byte-identical same-input
+outputs, and the full controller-requested timing sample vector. The retained
+evidence includes every raw sample plus GPU UUID, driver, CUDA, Python, Torch,
+Triton, software-image, repository-tree, evaluator, and zero-dollar usage
+identities. An independently allowed worker must sign the exact evidence and
+device identity before the builder returns it. The result is the distinct
+`noeris-kernel-tournament-proposal-v1` contract with an immutable
+`acceptedBy0brain: false` marker. It is not production evidence, and 0brain must
+reject the proposal schema categorically rather than trusting that marker.
+
+A future fixed-policy Kaggle adapter and separate 0brain verifier may emit an
+accepted-evidence contract only after they pin controller and worker principals,
+prove unique allocations, verify retained raw correctness artifacts and the
+provider usage receipt, and reproduce the environment and code identities. Only
+then may a series of at least three independent allocation receipts inform a
+learning decision. Neither this proposal nor the future evidence contract may
+open a PR, merge, deploy, or publish on its own.
+
 ## What To Defer
 
 - generalized multi-domain research
