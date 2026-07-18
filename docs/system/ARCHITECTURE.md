@@ -150,13 +150,42 @@ device identity before the builder returns it. The result is the distinct
 `acceptedBy0brain: false` marker. It is not production evidence, and 0brain must
 reject the proposal schema categorically rather than trusting that marker.
 
-A future fixed-policy Kaggle adapter and separate 0brain verifier may emit an
-accepted-evidence contract only after they pin controller and worker principals,
-prove unique allocations, verify retained raw correctness artifacts and the
-provider usage receipt, and reproduce the environment and code identities. Only
-then may a series of at least three independent allocation receipts inform a
-learning decision. Neither this proposal nor the future evidence contract may
-open a PR, merge, deploy, or publish on its own.
+The fixed-policy `zero_research_kaggle_worker` is the production raw-artifact
+producer for one allocation. Its public CLI permits only candidate,
+authorization, plan, allocation ID, output directory, and Kaggle kernel ref;
+trust paths, namespaces, principal, signing key, and image identity are fixed.
+The controller and worker allowed-signers files must be root-protected and
+key-disjoint. The worker key is an ephemeral secret whose public fingerprint is
+pinned separately. The worker cannot load reference-oracle or controller
+usage-observer keys and cannot emit either receipt.
+
+Inputs for the correctness oracle use `pinned-float64-matmul-v1`. For each
+tensor, SHA-256 counter blocks over the exact domain, case seed, tensor name,
+and counter yield bits in least-significant-bit-first order. Bits map to
+`{-1,+1}`, then both input tensors are scaled by the same exactly representable
+power of two. The reference is an exact signed-int64 dot product converted to
+float64 and scaled by the squared power of two. Reference and two separately
+executed outputs are retained as little-endian float64 bytes. Timing samples are
+retained as positive integer nanoseconds; the proposal carries their exact
+millisecond conversion.
+
+The worker pins the T4 runtime, software-image digest, git commit, tracked-tree
+content digest, six allowed Triton knobs, randomized arm order, warmups, samples,
+and hard shape, memory, FLOP, raw-artifact, verifier-series, wall-clock, and
+zero-dollar ceilings. It stages owner-only files and publishes the allocation
+directory atomically with Linux `renameat2(RENAME_NOREPLACE)`. A retry verifies
+the canonical proposal, signatures, receipt bindings, usage receipt, and every
+raw byte digest before returning the retained result without another GPU run.
+
+Its outputs remain only `noeris-kernel-tournament-proposal-v1`,
+`noeris-kernel-allocation-artifacts-v1`, `noeris-kaggle-usage-v1`, and raw
+artifacts. They are categorically unaccepted. The separate 0brain series
+verifier may emit accepted evidence only after it proves unique allocations,
+distinct GPU UUIDs and Kaggle refs, independent oracle and controller-observer
+receipts, reproduced identities, and whole-series zero-dollar compliance. Only
+then may at least three allocations inform a learning decision. Neither the
+worker proposal nor accepted evidence may train a model, open a PR, merge,
+deploy, or publish on its own.
 
 ## What To Defer
 

@@ -170,7 +170,6 @@ def _build_untrusted_tournament_proposal(
     warmups = _positive_integer(evaluator.get("warmups"), "evaluator warmups")
     environment = _environment(environment_value, evaluator, str(plan.get("hardware")))
     worker_identity = _worker_identity(worker_identity_value, plan)
-    worker_usage = _worker_usage(worker_usage_value)
 
     started = time.monotonic()
     results: list[dict[str, object]] = []
@@ -189,6 +188,8 @@ def _build_untrusted_tournament_proposal(
             raise ValueError("champion and challenger did not use the same exact reference input")
         results.extend(case_results)
     elapsed_ms = int((time.monotonic() - started) * 1000)
+    usage_input = worker_usage_value(elapsed_ms) if callable(worker_usage_value) else worker_usage_value
+    worker_usage = _worker_usage(usage_input)
     budget = _object(plan.get("budget"), "budget")
     measured_runs = len(results)
     if budget.get("maxUsd") != 0 or worker_usage["costUsd"] != 0 or measured_runs > _positive_integer(budget.get("maxRuns"), "run budget") or elapsed_ms > _positive_integer(budget.get("maxWallClockMinutes"), "wall-clock budget") * 60_000:

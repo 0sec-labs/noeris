@@ -392,6 +392,7 @@ name = "noeris"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "numpy" },
     { name = "torch" },
     { name = "triton" },
 ]
@@ -411,6 +412,7 @@ research = [
 
 [package.metadata]
 requires-dist = [
+    { name = "numpy", specifier = ">=1.24" },
     { name = "numpy", marker = "extra == 'dev'", specifier = ">=1.24" },
     { name = "numpy", marker = "extra == 'research'", specifier = ">=1.24" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.0" },

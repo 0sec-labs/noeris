@@ -209,6 +209,16 @@ def test_rejects_hardware_worker_identity_and_paid_usage_drift():
         execute(lambda values: values["worker_usage_value"].update({"tier": "paid", "costUsd": 1}))
 
 
+def test_resolves_usage_only_after_measurement_finishes():
+    observed = []
+    def usage(elapsed_ms):
+        observed.append(elapsed_ms)
+        return {"provider": "kaggle", "tier": "free", "costUsd": 0, "usageReceiptDigest": D("f")}
+    result, _calls = execute(lambda values: values.update({"worker_usage_value": usage}))
+    assert observed and observed[0] >= 0
+    assert result["usage"]["usageReceiptDigest"] == D("f")
+
+
 def test_rejects_bad_allocation_attestation_and_authorization_shape():
     def wrong_attestor(_material, _allocation_id, device_uuid):
         return {"allocationId": "kaggle-t4-002", "deviceUuid": device_uuid, "evidenceDigest": "PENDING", "namespace": "0research-noeris-allocation-evidence-v1", "principal": "kaggle-t4-runner", "signatureSsh": SIGNATURE}
