@@ -258,6 +258,11 @@ def _cross_check_authorization(plan: dict[str, object], authorization: dict[str,
     for index, (authorization_round, plan_round) in enumerate(zip(auth_rounds, plan_rounds, strict=True)):
         auth_item = _object(authorization_round, "authorization round")
         plan_item = _object(plan_round, "plan round")
+        if plan.get("schemaVersion") == 2:
+            _exact(auth_item, ["allocationId", "executionTemplateDigest"], "v2 authorization round")
+            _exact(plan_item, ["allocationId", "armOrders", "executionTemplateDigest", "seed"], "v2 plan round")
+            if plan_item.get("executionTemplateDigest") != auth_item.get("executionTemplateDigest"):
+                raise ValueError("plan execution template drifts from signed controller authorization")
         allocation = _text(auth_item.get("allocationId"), "allocation id")
         seed = int(hashlib.sha256(f"{nonce}\0{allocation}\0{index}".encode()).hexdigest()[:12], 16)
         expected_orders = []
@@ -280,8 +285,8 @@ def _validate_candidate(candidate: dict[str, object]) -> None:
 
 def _validate_authorization(authorization: dict[str, object]) -> None:
     _exact(authorization, ["candidateDigest", "championConfig", "controllerPrincipal", "evaluator", "generator", "hardware", "manifest", "novelty", "operator", "randomizationNonce", "repository", "rounds", "schemaVersion", "signatureSsh"], "controller authorization")
-    if authorization.get("schemaVersion") != 1:
-        raise ValueError("controller authorization schemaVersion must be 1")
+    if authorization.get("schemaVersion") not in {1, 2}:
+        raise ValueError("controller authorization schemaVersion must be 1 or 2")
 
 
 def _validate_plan_components(plan: dict[str, object], authorization: dict[str, object], candidate: dict[str, object]) -> None:
@@ -336,6 +341,18 @@ def _validate_plan_components(plan: dict[str, object], authorization: dict[str, 
     allocation_ids = [_safe_id(_object(item, "round").get("allocationId"), "allocation id") for item in rounds]
     if len(set(allocation_ids)) != len(allocation_ids):
         raise ValueError("allocation ids must be unique")
+    if plan.get("schemaVersion") == 2:
+        authorization_rounds = authorization.get("rounds")
+        if not isinstance(authorization_rounds, list) or len(authorization_rounds) != len(rounds):
+            raise ValueError("v2 authorization rounds do not cover the plan")
+        for authorization_round, plan_round in zip(authorization_rounds, rounds, strict=True):
+            auth_item = _object(authorization_round, "v2 authorization round")
+            planned_item = _object(plan_round, "v2 plan round")
+            _exact(auth_item, ["allocationId", "executionTemplateDigest"], "v2 authorization round")
+            _exact(planned_item, ["allocationId", "armOrders", "executionTemplateDigest", "seed"], "v2 plan round")
+            _digest(auth_item.get("executionTemplateDigest"), "v2 authorization template digest")
+            if planned_item.get("allocationId") != auth_item.get("allocationId") or planned_item.get("executionTemplateDigest") != auth_item.get("executionTemplateDigest"):
+                raise ValueError("v2 plan round drifts from its exact signed template binding")
     budget = _object(plan.get("budget"), "budget")
     _exact(budget, ["maxRuns", "maxUsd", "maxWallClockMinutes", "minimumRuns"], "budget")
     minimum_runs = len(normalized_cases) * 2 * len(rounds)

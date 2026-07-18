@@ -22,6 +22,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Callable, Mapping
 
+from .zero_research_kaggle_capsule import load_execution_capsule
 from .zero_research_kaggle_worker import (
     ALLOCATION_ID,
     GIT,
@@ -54,6 +55,7 @@ from .zero_research_tournament import (
 
 BUILD_DATE = re.compile(r"^[0-9]{8}-[0-9]{6}$")
 GIT_COMMIT = re.compile(r"^[0-9a-f]{40}$")
+DIGEST = re.compile(r"^sha256:[0-9a-f]{64}$")
 CAPTURE_AUTHORITY = {
     "acceptedEvidenceAllowed": False,
     "learningAllowed": False,
@@ -90,23 +92,26 @@ def _validate_inputs(candidate_value: object, authorization_value: object, plan_
     _validate_authorization(authorization)
     _exact(plan, ["arms", "authority", "budget", "candidateDigest", "candidateId", "contract", "controllerAuthorization", "evaluator", "generator", "hardware", "manifest", "novelty", "operator", "planDigest", "planId", "randomizationDigest", "repository", "rounds", "schemaVersion"], "capture tournament plan")
     _validate_resource_ceiling(plan)
+    plan_version = plan.get("schemaVersion")
+    if plan_version not in {1, 2} or authorization.get("schemaVersion") != plan_version:
+        raise ValueError("capture plan and controller authorization versions do not match")
     plan_body = {key: value for key, value in plan.items() if key not in {"planDigest", "planId"}}
     plan_digest = sha256(canonical_json(plan_body))
-    if plan.get("schemaVersion") != 1 or plan.get("contract") != "noeris-kernel-tournament-plan-v1" or plan.get("planDigest") != plan_digest or plan.get("planId") != f"noeris-{plan_digest[7:]}":
+    if plan.get("contract") != f"noeris-kernel-tournament-plan-v{plan_version}" or plan.get("planDigest") != plan_digest or plan.get("planId") != f"noeris-{plan_digest[7:]}":
         raise ValueError("capture plan identity or digest is invalid")
     candidate_digest = sha256(canonical_json(candidate))
     if plan.get("candidateDigest") != candidate_digest or plan.get("candidateId") != candidate.get("id"):
         raise ValueError("capture plan does not bind the exact candidate")
     authorization_digest = sha256(canonical_json(authorization))
     controller = _object(plan.get("controllerAuthorization"), "capture controller authorization ref")
-    if controller.get("sha256") != authorization_digest or controller.get("ref") != f"0research-noeris-tournament-controller-envelope-v1:{authorization_digest}":
+    if controller.get("sha256") != authorization_digest or controller.get("ref") != f"0research-noeris-tournament-controller-envelope-v{plan_version}:{authorization_digest}":
         raise ValueError("capture plan does not bind the exact controller authorization")
     change = _object(candidate.get("change"), "capture candidate change")
     if candidate.get("project") != "noeris" or change.get("kind") != "kernel_config":
         raise ValueError("capture candidate is not a Noeris kernel configuration")
     controller = _object(plan.get("controllerAuthorization"), "capture controller authorization ref")
     _exact(controller, ["namespace", "principal", "ref", "sha256"], "capture controller authorization ref")
-    if authorization.get("candidateDigest") != candidate_digest or authorization.get("controllerPrincipal") != controller.get("principal") or controller.get("namespace") != "0research-noeris-tournament-plan-v1":
+    if authorization.get("candidateDigest") != candidate_digest or authorization.get("controllerPrincipal") != controller.get("principal") or controller.get("namespace") != f"0research-noeris-tournament-plan-v{plan_version}":
         raise ValueError("capture controller authorization identity or candidate binding is invalid")
     budget = _object(plan.get("budget"), "capture plan budget")
     if budget.get("maxUsd") != 0 or plan.get("authority") != TOURNAMENT_AUTHORITY:
@@ -199,13 +204,17 @@ def _validate_environment(value: object) -> dict[str, object]:
     return environment
 
 
-def _validate_worker_identity(value: object, plan: Mapping[str, object]) -> dict[str, object]:
+def _validate_worker_identity(value: object, plan: Mapping[str, object], execution_template_digest: str | None = None) -> dict[str, object]:
     identity = _object(value, "capture worker identity")
-    if set(identity) != {"repositoryCommitSha", "repositoryTreeDigest", "evaluatorDigest"}:
+    expected_keys = {"repositoryCommitSha", "repositoryTreeDigest", "evaluatorDigest"} | ({"executionTemplateDigest"} if plan.get("schemaVersion") == 2 else set())
+    if set(identity) != expected_keys:
         raise ValueError("capture worker identity fields are invalid")
     repository = _object(plan.get("repository"), "capture plan repository")
     evaluator = _object(plan.get("evaluator"), "capture plan evaluator")
-    if identity != {"repositoryCommitSha": repository.get("commitSha"), "repositoryTreeDigest": repository.get("treeDigest"), "evaluatorDigest": evaluator.get("digest")}:
+    expected = {"repositoryCommitSha": repository.get("commitSha"), "repositoryTreeDigest": repository.get("treeDigest"), "evaluatorDigest": evaluator.get("digest")}
+    if plan.get("schemaVersion") == 2:
+        expected["executionTemplateDigest"] = execution_template_digest
+    if identity != expected:
         raise ValueError("capture worker identity drifts from the plan")
     return identity
 
@@ -232,6 +241,7 @@ def _execute_capture_in_stage(
     *, candidate: object, authorization: object, plan_value: object,
     allocation_id: str, output_directory: str, kernel_ref: str,
     environment: object, worker_identity: object, backend: MeasurementBackend,
+    execution_capsule_digest: str | None = None, execution_template_digest: str | None = None,
     now: Callable[[], datetime] = lambda: datetime.now(timezone.utc),
 ) -> dict[str, object]:
     if not KERNEL_REF.fullmatch(kernel_ref):
@@ -239,9 +249,11 @@ def _execute_capture_in_stage(
     inputs = _validate_inputs(candidate, authorization, plan_value, allocation_id)
     root = _validate_stage(output_directory)
     plan, round_value = inputs.plan, inputs.round
+    if plan.get("schemaVersion") == 2 and (not isinstance(execution_capsule_digest, str) or not DIGEST.fullmatch(execution_capsule_digest) or not isinstance(execution_template_digest, str) or not DIGEST.fullmatch(execution_template_digest) or round_value.get("executionTemplateDigest") != execution_template_digest):
+        raise ValueError("v2 capture requires exact execution capsule and template digests")
     _private_directory(root, allocation_id)
     capture_environment = _validate_environment(environment)
-    capture_identity = _validate_worker_identity(worker_identity, plan)
+    capture_identity = _validate_worker_identity(worker_identity, plan, execution_template_digest)
     evaluator = _object(plan.get("evaluator"), "capture evaluator")
     samples, warmups = evaluator.get("samples"), evaluator.get("warmups")
     absolute_tolerance, relative_tolerance = evaluator.get("absoluteTolerance"), evaluator.get("relativeTolerance")
@@ -302,13 +314,14 @@ def _execute_capture_in_stage(
     }
     usage_ref = _json_artifact(root, f"{allocation_id}/usage-self-report.json", usage)
     body = {
-        "schemaVersion": 1, "contract": "noeris-kaggle-allocation-capture-v1",
+        "schemaVersion": plan.get("schemaVersion"), "contract": f"noeris-kaggle-allocation-capture-v{plan.get('schemaVersion')}",
         "acceptedBy0brain": False, "allocationId": allocation_id,
         "kernelRef": kernel_ref, "candidateDigest": sha256(canonical_json(inputs.candidate)),
         "controllerAuthorizationDigest": sha256(canonical_json(inputs.authorization)),
         "planId": plan["planId"], "planDigest": plan["planDigest"],
         "environment": capture_environment,
         "workerIdentity": capture_identity,
+        **({"executionCapsuleDigest": execution_capsule_digest, "executionTemplateDigest": execution_template_digest} if plan.get("schemaVersion") == 2 else {}),
         "results": results, "usageSelfReport": usage_ref,
         "authority": CAPTURE_AUTHORITY,
     }
@@ -318,17 +331,19 @@ def _execute_capture_in_stage(
     return {"allocationId": allocation_id, "capture": capture, "outputDirectory": str(root)}
 
 
-def _recover_capture(target: Path, candidate: object, authorization: object, plan_value: object, allocation_id: str, kernel_ref: str) -> dict[str, object]:
+def _recover_capture(target: Path, candidate: object, authorization: object, plan_value: object, allocation_id: str, kernel_ref: str, execution_capsule_digest: str | None = None, execution_template_digest: str | None = None) -> dict[str, object]:
     inputs = _validate_inputs(candidate, authorization, plan_value, allocation_id)
+    if inputs.plan.get("schemaVersion") == 2 and (not isinstance(execution_capsule_digest, str) or not DIGEST.fullmatch(execution_capsule_digest) or not isinstance(execution_template_digest, str) or not DIGEST.fullmatch(execution_template_digest) or inputs.round.get("executionTemplateDigest") != execution_template_digest):
+        raise ValueError("v2 recovery requires exact planned execution capsule and template digests")
     root = _validate_stage(str(target))
     capture, _capture_bytes = _retained_json(root, f"{allocation_id}/capture.json", "retained Kaggle capture")
-    expected_keys = {"acceptedBy0brain", "allocationId", "authority", "candidateDigest", "captureDigest", "contract", "controllerAuthorizationDigest", "environment", "kernelRef", "planDigest", "planId", "results", "schemaVersion", "usageSelfReport", "workerIdentity"}
+    expected_keys = {"acceptedBy0brain", "allocationId", "authority", "candidateDigest", "captureDigest", "contract", "controllerAuthorizationDigest", "environment", "kernelRef", "planDigest", "planId", "results", "schemaVersion", "usageSelfReport", "workerIdentity"} | ({"executionCapsuleDigest", "executionTemplateDigest"} if inputs.plan.get("schemaVersion") == 2 else set())
     if set(capture) != expected_keys:
         raise ValueError("retained Kaggle capture has unsupported or missing fields")
     body = {key: value for key, value in capture.items() if key != "captureDigest"}
     if (
-        capture.get("schemaVersion") != 1
-        or capture.get("contract") != "noeris-kaggle-allocation-capture-v1"
+        capture.get("schemaVersion") != inputs.plan.get("schemaVersion")
+        or capture.get("contract") != f"noeris-kaggle-allocation-capture-v{inputs.plan.get('schemaVersion')}"
         or capture.get("acceptedBy0brain") is not False
         or capture.get("allocationId") != allocation_id
         or capture.get("kernelRef") != kernel_ref
@@ -338,10 +353,11 @@ def _recover_capture(target: Path, candidate: object, authorization: object, pla
         or capture.get("planDigest") != inputs.plan.get("planDigest")
         or capture.get("captureDigest") != sha256(canonical_json(body))
         or capture.get("authority") != CAPTURE_AUTHORITY
+        or (inputs.plan.get("schemaVersion") == 2 and (capture.get("executionCapsuleDigest") != execution_capsule_digest or capture.get("executionTemplateDigest") != execution_template_digest))
     ):
         raise ValueError("retained Kaggle capture binding or digest is invalid")
     _validate_environment(capture.get("environment"))
-    _validate_worker_identity(capture.get("workerIdentity"), inputs.plan)
+    _validate_worker_identity(capture.get("workerIdentity"), inputs.plan, execution_template_digest)
     usage_ref = _object(capture.get("usageSelfReport"), "retained capture usage ref")
     if usage_ref.get("path") != f"{allocation_id}/usage-self-report.json":
         raise ValueError("retained capture usage path is noncanonical")
@@ -430,7 +446,7 @@ def _recover_capture(target: Path, candidate: object, authorization: object, pla
 def _run_capture_core(*, output_directory: str, publisher: Callable[[Path, Path], None] = _publish_noreplace, **kwargs) -> dict[str, object]:
     target = Path(output_directory).absolute()
     if target.exists() and not target.is_symlink():
-        return _recover_capture(target, kwargs["candidate"], kwargs["authorization"], kwargs["plan_value"], kwargs["allocation_id"], kwargs["kernel_ref"])
+        return _recover_capture(target, kwargs["candidate"], kwargs["authorization"], kwargs["plan_value"], kwargs["allocation_id"], kwargs["kernel_ref"], kwargs.get("execution_capsule_digest"), kwargs.get("execution_template_digest"))
     target, stage = _prepare_stage(output_directory)
     try:
         result = _execute_capture_in_stage(output_directory=str(stage), **kwargs)
@@ -443,12 +459,39 @@ def run_fixed_kaggle_capture(candidate_path: str, authorization_path: str, plan_
     candidate = _stable_json(candidate_path, "capture candidate")
     authorization = _stable_json(authorization_path, "capture controller authorization")
     plan = _stable_json(plan_path, "capture tournament plan")
+    plan_object = _object(plan, "capture tournament plan")
+    if plan_object.get("schemaVersion") != 1:
+        raise ValueError("legacy Kaggle capture accepts v1 plans only; v2 requires the fixed capsule wrapper")
     target = Path(output_directory).absolute()
     if target.exists() and not target.is_symlink():
         return _recover_capture(target, candidate, authorization, plan, allocation_id, kernel_ref)
     repository_root = Path(subprocess.run([GIT, "rev-parse", "--show-toplevel"], capture_output=True, text=True, timeout=10, check=True, env={"LANG": "C", "LC_ALL": "C", "PATH": "/usr/bin:/bin"}).stdout.strip()).resolve(strict=True)
-    plan_object = _object(plan, "capture tournament plan")
     return _run_capture_core(candidate=candidate, authorization=authorization, plan_value=plan, allocation_id=allocation_id, output_directory=output_directory, kernel_ref=kernel_ref, environment=_capture_environment(), worker_identity=_worker_identity(plan_object, repository_root), backend=TorchTritonBackend())
+
+
+def run_fixed_kaggle_capsule(capsule_path: str, package_root: str, output_directory: str) -> dict[str, object]:
+    """Execute one verified v2 capsule without requiring a provider-side git checkout."""
+
+    capsule = load_execution_capsule(capsule_path, package_root)
+    candidate = _object(capsule["candidate"], "capsule candidate")
+    authorization = _object(capsule["controllerEnvelope"], "capsule controller envelope")
+    plan = _object(capsule["plan"], "capsule plan")
+    allocation_id, kernel_ref = str(capsule["allocationId"]), str(capsule["kernelRef"])
+    inputs = _validate_inputs(candidate, authorization, plan, allocation_id)
+    template_digest = str(_object(capsule["executionTemplate"], "capsule execution template")["templateDigest"])
+    if inputs.round.get("executionTemplateDigest") != template_digest:
+        raise ValueError("capsule execution template drifts from the selected signed round")
+    target = Path(output_directory).absolute()
+    if target.exists() and not target.is_symlink():
+        return _recover_capture(target, candidate, authorization, plan, allocation_id, kernel_ref, str(capsule["capsuleDigest"]), template_digest)
+    repository = _object(plan.get("repository"), "capsule plan repository")
+    evaluator = _object(plan.get("evaluator"), "capsule plan evaluator")
+    worker_identity = {"repositoryCommitSha": repository["commitSha"], "repositoryTreeDigest": repository["treeDigest"], "evaluatorDigest": evaluator["digest"], "executionTemplateDigest": template_digest}
+    result = _run_capture_core(candidate=candidate, authorization=authorization, plan_value=plan, allocation_id=allocation_id, output_directory=output_directory, kernel_ref=kernel_ref, environment=_capture_environment(), worker_identity=worker_identity, backend=TorchTritonBackend(), execution_capsule_digest=str(capsule["capsuleDigest"]), execution_template_digest=template_digest)
+    after = load_execution_capsule(capsule_path, package_root)
+    if after["capsuleDigest"] != capsule["capsuleDigest"] or _object(after["executionTemplate"], "post-execution template")["templateDigest"] != template_digest:
+        raise ValueError("execution capsule or template changed during GPU work")
+    return result
 
 
 def main(argv: list[str] | None = None) -> int:
