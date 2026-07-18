@@ -27,6 +27,12 @@ from ._legacy.ingestion import (
 )
 from .llm import LlmConfigurationError, LlmHypothesisPlanner, LlmResearchMemory, ResponsesApiClient
 from .operator_surface import TRITON_ITERATE_OPERATORS
+from .zero_research import GeneratorIdentity
+from .zero_research_export import (
+    canonical_json,
+    export_kernel_challengers,
+    write_canonical_json,
+)
 from .triton_kernels import (
     MATMUL_SHAPE_BUCKETS,
     ConfigDatabase,
@@ -62,6 +68,25 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers.add_parser("benchmarks", help="print the current standing benchmark goals")
     subparsers.add_parser("ci-env", help="show GitHub env/secret mapping from local Codex config")
     subparsers.add_parser("status", help="show local verification and artifact status")
+
+    export_parser = subparsers.add_parser(
+        "0research-export",
+        help="export bounded generator-only kernel challengers for 0brain",
+    )
+    export_parser.add_argument("--world-model", required=True)
+    export_parser.add_argument("--source-refs", required=True)
+    export_parser.add_argument("--baseline", required=True)
+    export_parser.add_argument("--shape", required=True)
+    export_parser.add_argument("--operator", required=True, choices=TRITON_ITERATE_OPERATORS)
+    export_parser.add_argument("--hardware", required=True)
+    export_parser.add_argument("--generator-id", required=True)
+    export_parser.add_argument("--generator-digest", required=True)
+    export_parser.add_argument("--max-candidates", type=int, default=5)
+    export_parser.add_argument(
+        "--output",
+        default="-",
+        help="canonical JSON output path, or - for stdout",
+    )
 
     cycle_parser = subparsers.add_parser("cycle", help="run a scaffolded research cycle")
     cycle_parser.add_argument("--topic", required=True, help="topic under investigation")
@@ -596,6 +621,29 @@ def main(argv: list[str] | None = None) -> int:
             "workflow_summary": _status_workflow_summary(),
         }
         print(json.dumps(payload, indent=2))
+        return 0
+    if args.command == "0research-export":
+        try:
+            challengers = export_kernel_challengers(
+                world_model_path=args.world_model,
+                source_refs_path=args.source_refs,
+                baseline_path=args.baseline,
+                shape_path=args.shape,
+                operator=args.operator,
+                hardware=args.hardware,
+                generator=GeneratorIdentity(
+                    id=args.generator_id,
+                    digest=args.generator_digest,
+                ),
+                max_candidates=args.max_candidates,
+            )
+            if args.output == "-":
+                print(canonical_json(challengers))
+            else:
+                write_canonical_json(args.output, challengers)
+        except (KeyError, OSError, ValueError) as exc:
+            print(json.dumps({"error": str(exc)}, sort_keys=True), file=sys.stderr)
+            return 2
         return 0
     if args.command == "sources":
         topic = ResearchTopic(

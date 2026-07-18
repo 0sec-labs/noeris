@@ -110,6 +110,25 @@ The trusted 0brain controller separately pins the generator and knob allowlist,
 injects a sealed manifest plus disjoint evaluation corpora, and grants only
 draft-PR authority. GPU benchmarking and grading remain independent of Noeris.
 
+The file transport is the generator-only `0research-export` command. It reads
+an explicit world-model snapshot, source-reference map, complete baseline, and
+shape; then emits a canonical JSON array that can be passed directly to
+0brain's `improvement-project` command:
+
+```bash
+research-engine 0research-export \
+  --world-model world-model.json --source-refs source-refs.json \
+  --baseline baseline.json --shape shape.json \
+  --operator matmul --hardware H100 \
+  --generator-id noeris.world-model-v1 \
+  --generator-digest sha256:<pinned-source-digest> \
+  --output challengers.json
+```
+
+The command fails if it cannot produce at least one valid challenger. It never
+runs a benchmark, updates the world model, or supplies evaluation and promotion
+policy.
+
 ## What To Defer
 
 - generalized multi-domain research
