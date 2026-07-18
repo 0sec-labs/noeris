@@ -150,14 +150,25 @@ device identity before the builder returns it. The result is the distinct
 `acceptedBy0brain: false` marker. It is not production evidence, and 0brain must
 reject the proposal schema categorically rather than trusting that marker.
 
-The fixed-policy `zero_research_kaggle_worker` is the production raw-artifact
-producer for one allocation. Its public CLI permits only candidate,
-authorization, plan, allocation ID, output directory, and Kaggle kernel ref;
-trust paths, namespaces, principal, signing key, and image identity are fixed.
-The controller and worker allowed-signers files must be root-protected and
-key-disjoint. The worker key is an ephemeral secret whose public fingerprint is
-pinned separately. The worker cannot load reference-oracle or controller
-usage-observer keys and cannot emit either receipt.
+Kaggle kernels cannot receive independently protected `/etc` policy mounts, an
+ephemeral `/run/secrets` signing-key mount, or a controller-pinned OCI image.
+`zero_research_kaggle_capture` is therefore the provider-compatible execution
+boundary. It accepts only candidate, authorization, plan, allocation ID, output
+directory, and Kaggle kernel ref; it has no signer, key, policy, oracle, or
+observer surface. It emits the unsigned and categorically unaccepted
+`noeris-kaggle-allocation-capture-v1` contract plus raw artifacts and a plainly
+labelled `noeris-kaggle-self-report-v1`. The self-report has
+`independentlyObserved: false`; it is not zero-dollar evidence.
+
+The capture records Kaggle's observable `BUILD_DATE` and `GIT_COMMIT`, exact
+Python/Torch/Triton/CUDA versions, and a recomputable
+`noeris-kaggle-runtime-v1` fingerprint. It deliberately does not assert an OCI
+image digest. A trusted external collector must map those observable release
+markers to a controller-approved Kaggle release manifest and independently
+observed provider status before an isolated worker attestor may sign proposal
+or artifact receipts. `zero_research_kaggle_worker` remains the fixed-mount
+contract/reference implementation, but must not be dispatched to Kaggle with a
+self-materialized signing secret or policy and called independently protected.
 
 Inputs for the correctness oracle use `pinned-float64-matmul-v1`. For each
 tensor, SHA-256 counter blocks over the exact domain, case seed, tensor name,
@@ -169,23 +180,22 @@ executed outputs are retained as little-endian float64 bytes. Timing samples are
 retained as positive integer nanoseconds; the proposal carries their exact
 millisecond conversion.
 
-The worker pins the T4 runtime, software-image digest, git commit, tracked-tree
-content digest, six allowed Triton knobs, randomized arm order, warmups, samples,
-and hard shape, memory, FLOP, raw-artifact, verifier-series, wall-clock, and
-zero-dollar ceilings. It stages owner-only files and publishes the allocation
-directory atomically with Linux `renameat2(RENAME_NOREPLACE)`. A retry verifies
-the canonical proposal, signatures, receipt bindings, usage receipt, and every
-raw byte digest before returning the retained result without another GPU run.
-Every signed artifact path is rooted at the planned allocation ID
-(`<allocation-id>/usage.json` and `<allocation-id>/raw/...`). This lets a
-controller assemble three independently downloaded allocation trees beneath one
-series root without rewriting signed receipts or allowing one allocation to
-alias another allocation's bytes.
+The capture pins T4 execution, git commit, tracked-tree content digest, six
+allowed Triton knobs, randomized arm order, warmups, samples, and hard shape,
+memory, FLOP, raw-artifact, verifier-series, and wall-clock ceilings. It stages
+owner-only files and publishes the allocation directory atomically with Linux
+`renameat2(RENAME_NOREPLACE)`. A retry reverifies the exact input digests,
+plan-derived result order and seeds, runtime fingerprint, code identity,
+self-report, raw paths, timing bounds, and every artifact byte before returning
+without another GPU run. Every artifact path is rooted at the planned
+allocation ID, allowing a controller to assemble distinct downloaded trees
+without rewriting capture bytes or permitting cross-allocation aliases.
 
-Its outputs remain only `noeris-kernel-tournament-proposal-v1`,
-`noeris-kernel-allocation-artifacts-v1`, `noeris-kaggle-usage-v1`, and raw
-artifacts. They are categorically unaccepted. The separate 0brain series
-verifier may emit accepted evidence only after it proves unique allocations,
+Capture outputs remain categorically unaccepted. The external attestor must
+derive the existing `noeris-kernel-tournament-proposal-v1` and
+`noeris-kernel-allocation-artifacts-v1` contracts without changing captured raw
+paths. The separate 0brain series verifier may emit accepted evidence only
+after it proves unique allocations,
 distinct GPU UUIDs and Kaggle refs, independent oracle and controller-observer
 receipts, reproduced identities, and whole-series zero-dollar compliance. Only
 then may at least three allocations inform a learning decision. Neither the
