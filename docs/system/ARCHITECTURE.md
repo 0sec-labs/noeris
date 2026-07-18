@@ -160,6 +160,28 @@ observer surface. It emits the unsigned and categorically unaccepted
 labelled `noeris-kaggle-self-report-v1`. The self-report has
 `independentlyObserved: false`; it is not zero-dollar evidence.
 
+Real provider dispatch uses the separate v2 capsule path. A signed tournament
+round binds a reviewed `noeris-kaggle-execution-template-v1` file-tree digest,
+not the digest of the final package. After the plan exists, the controller
+builds `execution-capsule.json` with the exact candidate, signed controller
+envelope, plan, allocation, Kaggle ref, and the complete canonical template
+manifest. The final provider package is then the fixed private/offline metadata,
+that inert capsule, and the exact template files. This ordering is deliberately
+acyclic: the signed dispatch can bind the plan, template, capsule, final package,
+and runtime-release digests without requiring a package to contain its own
+digest.
+
+Before CUDA initialization, the v2 capture wrapper requires canonical capsule
+and metadata bytes, recomputes the capsule and template digests, selects exactly
+one matching v2 plan round, hashes every template file, and rejects any missing,
+extra, traversing, symbolic-link, or unsupported package entry. Its capture is
+`noeris-kaggle-allocation-capture-v2` and binds the exact capsule and template
+digests. The template tree is the executed code identity. Repository commit and
+tree values remain signed provenance; the offline provider does not pretend to
+verify them through an unavailable `.git` checkout. The legacy v1 Python seam
+remains for migration tests only and must not be accepted by real v2
+dispatch/intake.
+
 The capture records Kaggle's observable `BUILD_DATE` and `GIT_COMMIT`, exact
 Python/Torch/Triton/CUDA versions, and a recomputable
 `noeris-kaggle-runtime-v1` fingerprint. It deliberately does not assert an OCI
