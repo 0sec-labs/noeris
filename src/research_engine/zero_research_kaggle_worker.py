@@ -45,6 +45,7 @@ IMAGE_DIGEST_FILE = "/etc/0research/software-image.digest"
 WORKER_PRINCIPAL = "noeris-kaggle-worker"
 SIGNATURE = re.compile(r"^-----BEGIN SSH SIGNATURE-----\n[\s\S]+\n-----END SSH SIGNATURE-----\n?$")
 KERNEL_REF = re.compile(r"^[a-z0-9._-]+/[a-z0-9._-]+$")
+ALLOCATION_ID = re.compile(r"^[a-z0-9][a-z0-9._-]{0,127}$")
 DIGEST = re.compile(r"^sha256:[0-9a-f]{64}$")
 MAX_RAW_BYTES = 32 * 1024 * 1024
 MAX_VERIFIER_SERIES_BYTES = 256 * 1024 * 1024
@@ -191,9 +192,12 @@ def _recover_retained(
     worker_policy: str,
 ) -> dict[str, object]:
     root = _validate_stage(str(target))
-    proposal, _proposal_bytes = _retained_json(root, "proposal.json", "retained proposal")
-    receipt, _receipt_bytes = _retained_json(root, "artifact-receipt.json", "retained artifact receipt")
-    usage, usage_bytes = _retained_json(root, "usage.json", "retained usage receipt")
+    if not ALLOCATION_ID.fullmatch(allocation_id):
+        raise ValueError("worker allocation id is unsafe")
+    allocation_prefix = f"{allocation_id}/"
+    proposal, _proposal_bytes = _retained_json(root, f"{allocation_prefix}proposal.json", "retained proposal")
+    receipt, _receipt_bytes = _retained_json(root, f"{allocation_prefix}artifact-receipt.json", "retained artifact receipt")
+    usage, usage_bytes = _retained_json(root, f"{allocation_prefix}usage.json", "retained usage receipt")
 
     proposal_keys = {
         "acceptedBy0brain", "allocationAttestation", "allocationId", "arms", "authority",
@@ -280,7 +284,7 @@ def _recover_retained(
     _retained_artifact(root, receipt.get("usageArtifact"), "retained usage artifact", float64=False)
     usage_artifact = _object(receipt.get("usageArtifact"), "retained usage artifact")
     proposal_usage = _object(proposal.get("usage"), "retained proposal usage")
-    if usage_artifact.get("path") != "usage.json" or usage_artifact.get("sha256") != sha256(usage_bytes) or proposal_usage.get("usageReceiptDigest") != sha256(usage_bytes) or proposal_usage.get("provider") != "kaggle" or proposal_usage.get("tier") != "free" or proposal_usage.get("costUsd") != 0:
+    if usage_artifact.get("path") != f"{allocation_prefix}usage.json" or usage_artifact.get("sha256") != sha256(usage_bytes) or proposal_usage.get("usageReceiptDigest") != sha256(usage_bytes) or proposal_usage.get("provider") != "kaggle" or proposal_usage.get("tier") != "free" or proposal_usage.get("costUsd") != 0:
         raise ValueError("retained usage artifact is not bound to the proposal")
 
     raw_results = receipt.get("results")
@@ -293,6 +297,13 @@ def _recover_retained(
         outputs = raw_item.get("outputs")
         if not isinstance(outputs, list) or len(outputs) != 2:
             raise ValueError("retained raw result requires two outputs")
+        case_id, arm_id = raw_item.get("caseId"), raw_item.get("armId")
+        reference_value = _object(raw_item.get("reference"), "retained reference artifact")
+        if reference_value.get("path") != f"{allocation_prefix}raw/{case_id}/reference.f64le" or any(
+            _object(output, "retained output artifact").get("path") != f"{allocation_prefix}raw/{case_id}/{arm_id}-output-{index + 1}.f64le"
+            for index, output in enumerate(outputs)
+        ):
+            raise ValueError("retained raw artifact path drifts from its canonical allocation path")
         reference_bytes = _retained_artifact(root, raw_item.get("reference"), "retained reference artifact", float64=True)
         output_bytes = [_retained_artifact(root, output, "retained output artifact", float64=True) for output in outputs]
         timing_ns = raw_item.get("timingsNs")
@@ -313,7 +324,7 @@ def _recover_retained(
             or measured_item.get("deterministic") is not True
         ):
             raise ValueError("retained raw result drifts from the signed proposal")
-    allowed_paths = {"proposal.json", "artifact-receipt.json", "usage.json"}
+    allowed_paths = {f"{allocation_prefix}proposal.json", f"{allocation_prefix}artifact-receipt.json", f"{allocation_prefix}usage.json"}
     for raw in raw_results:
         raw_item = _object(raw, "retained raw result")
         allowed_paths.add(str(_object(raw_item["reference"], "retained reference")["path"]))
@@ -558,8 +569,8 @@ def _run_worker_in_stage(
     controller_policy: str = CONTROLLER_POLICY, worker_policy: str = WORKER_POLICY,
     now: Callable[[], datetime] = lambda: datetime.now(timezone.utc),
 ) -> dict[str, object]:
-    if not KERNEL_REF.fullmatch(kernel_ref):
-        raise ValueError("Kaggle kernel ref is invalid")
+    if not KERNEL_REF.fullmatch(kernel_ref) or not ALLOCATION_ID.fullmatch(allocation_id):
+        raise ValueError("Kaggle kernel ref or worker allocation id is invalid")
     root = _validate_stage(output_directory)
     plan = _object(plan_value, "tournament plan")
     _validate_resource_ceiling(plan)
@@ -595,7 +606,7 @@ def _run_worker_in_stage(
         measurement = backend.measure(config, shape, seed, warmups, samples)
         if len(measurement.output_bytes) != 2 or len(measurement.timings_ns) != samples or any(not isinstance(item, int) or isinstance(item, bool) or item < 1 for item in measurement.timings_ns):
             raise ValueError("measurement backend returned invalid raw outputs or timings")
-        case_id = str(case["id"]); prefix = f"raw/{case_id}"
+        case_id = str(case["id"]); prefix = f"{allocation_id}/raw/{case_id}"
         reference = _artifact(root, f"{prefix}/reference.f64le", measurement.reference_bytes)
         outputs = [_artifact(root, f"{prefix}/{arm}-output-{index + 1}.f64le", value) for index, value in enumerate(measurement.output_bytes)]
         raw_results.append({"caseId": case_id, "armId": arm, "armOrderIndex": order_index, "caseSeed": seed, "warmupsCompleted": measurement.warmups_completed, "timingsNs": list(measurement.timings_ns), "reference": reference, "outputs": outputs})
@@ -612,7 +623,7 @@ def _run_worker_in_stage(
         if (completed - started).total_seconds() * 1000 > int(budget["maxWallClockMinutes"]) * 60_000:
             raise ValueError("worker usage interval exceeds the plan wall-clock budget")
         usage = {"schemaVersion": 1, "contract": "noeris-kaggle-usage-v1", "allocationId": allocation_id, "kernelRef": kernel_ref, "provider": "kaggle", "tier": "free", "costUsd": 0, "status": "complete", "accelerator": "gpu", "startedAt": _timestamp(started), "completedAt": _timestamp(completed)}
-        usage_ref = _json_artifact(root, "usage.json", usage)
+        usage_ref = _json_artifact(root, f"{allocation_id}/usage.json", usage)
         return {"provider": "kaggle", "tier": "free", "costUsd": 0, "usageReceiptDigest": usage_ref["sha256"]}
 
     def attestor(material: bytes, attested_allocation: str, device_uuid: str) -> Mapping[str, str]:
@@ -633,8 +644,8 @@ def _run_worker_in_stage(
     receipt_material = canonical_json(receipt_body).encode()
     receipt = {**receipt_body, "signatureSsh": signer(receipt_material, "0research-noeris-allocation-artifacts-v1")}
     verifier(receipt_material, str(receipt["signatureSsh"]), WORKER_PRINCIPAL, "0research-noeris-allocation-artifacts-v1", worker_policy)
-    _write_exclusive(root / "proposal.json", f"{canonical_json(proposal)}\n".encode())
-    _write_exclusive(root / "artifact-receipt.json", f"{canonical_json(receipt)}\n".encode())
+    _write_exclusive(root / allocation_id / "proposal.json", f"{canonical_json(proposal)}\n".encode())
+    _write_exclusive(root / allocation_id / "artifact-receipt.json", f"{canonical_json(receipt)}\n".encode())
     return {"allocationId": allocation_id, "proposal": proposal, "artifactReceipt": receipt, "outputDirectory": str(root)}
 
 

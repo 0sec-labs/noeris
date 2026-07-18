@@ -176,6 +176,11 @@ zero-dollar ceilings. It stages owner-only files and publishes the allocation
 directory atomically with Linux `renameat2(RENAME_NOREPLACE)`. A retry verifies
 the canonical proposal, signatures, receipt bindings, usage receipt, and every
 raw byte digest before returning the retained result without another GPU run.
+Every signed artifact path is rooted at the planned allocation ID
+(`<allocation-id>/usage.json` and `<allocation-id>/raw/...`). This lets a
+controller assemble three independently downloaded allocation trees beneath one
+series root without rewriting signed receipts or allowing one allocation to
+alias another allocation's bytes.
 
 Its outputs remain only `noeris-kernel-tournament-proposal-v1`,
 `noeris-kernel-allocation-artifacts-v1`, `noeris-kaggle-usage-v1`, and raw

@@ -62,9 +62,16 @@ def test_emits_exact_proposal_raw_receipt_usage_and_distinct_outputs(tmp_path):
     assert first["outputs"][0]["path"] != first["outputs"][1]["path"]
     assert first["outputs"][0]["sha256"] == first["outputs"][1]["sha256"]
     assert first["timingsNs"] == [1_000_000, 1_001_000, 1_002_000, 1_003_000, 1_004_000]
-    usage = json.loads((output / "usage.json").read_text())
+    allocation = output / "kaggle-t4-001"
+    usage = json.loads((allocation / "usage.json").read_text())
     assert usage == {"accelerator": "gpu", "allocationId": "kaggle-t4-001", "completedAt": "2026-07-18T00:01:00.000Z", "contract": "noeris-kaggle-usage-v1", "costUsd": 0, "kernelRef": "zero-research/run-001", "provider": "kaggle", "schemaVersion": 1, "startedAt": "2026-07-18T00:00:00.000Z", "status": "complete", "tier": "free"}
     assert result["proposal"]["usage"]["usageReceiptDigest"] == result["artifactReceipt"]["usageArtifact"]["sha256"]
+    assert result["artifactReceipt"]["usageArtifact"]["path"] == "kaggle-t4-001/usage.json"
+    assert all(
+        artifact["path"].startswith("kaggle-t4-001/raw/")
+        for item in result["artifactReceipt"]["results"]
+        for artifact in [item["reference"], *item["outputs"]]
+    )
     assert {item[2] for item in calls} >= {"0research-noeris-tournament-plan-v1", "0research-noeris-allocation-evidence-v1", "0research-noeris-allocation-artifacts-v1"}
     for path in output.rglob("*"):
         if path.is_file(): assert stat.S_IMODE(path.stat().st_mode) == 0o600
@@ -145,7 +152,7 @@ def test_no_replace_publication_never_overwrites_concurrent_target(tmp_path):
     with pytest.raises(FileExistsError, match="appeared"):
         run(tmp_path, publisher=race)
     assert (target / "marker").read_text() == "concurrent"
-    assert not (target / "proposal.json").exists()
+    assert not (target / "kaggle-t4-001" / "proposal.json").exists()
     assert not list(tmp_path.glob(".allocation-stage-*"))
 
 
@@ -171,10 +178,23 @@ def test_restart_recovers_exact_retained_allocation_without_gpu_work(tmp_path):
 def test_restart_rejects_tampered_retained_raw_artifact_without_gpu_work(tmp_path):
     os.chmod(tmp_path, 0o700)
     _first, _calls, output = run(tmp_path)
-    raw = next((output / "raw").rglob("*-output-1.f64le"))
+    raw = next((output / "kaggle-t4-001" / "raw").rglob("*-output-1.f64le"))
     raw.write_bytes(struct.pack("<2d", 7.0, 8.0))
     retry_backend = Backend()
     with pytest.raises(ValueError, match="bytes or digest drift"):
+        run(tmp_path, backend=retry_backend)
+    assert retry_backend.calls == []
+
+
+def test_restart_rejects_signed_raw_path_alias_without_gpu_work(tmp_path):
+    os.chmod(tmp_path, 0o700)
+    _first, _calls, output = run(tmp_path)
+    receipt_path = output / "kaggle-t4-001" / "artifact-receipt.json"
+    receipt = json.loads(receipt_path.read_text())
+    receipt["results"][0]["reference"]["path"] = "kaggle-t4-001/usage.json"
+    receipt_path.write_text(f"{worker_module.canonical_json(receipt)}\n")
+    retry_backend = Backend()
+    with pytest.raises(ValueError, match="canonical allocation path"):
         run(tmp_path, backend=retry_backend)
     assert retry_backend.calls == []
 
