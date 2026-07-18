@@ -155,9 +155,11 @@ def _private_directory(root: Path, relative: str) -> Path:
     return current
 
 
-def _capture_environment() -> dict[str, object]:
+def _capture_environment(*, include_numpy: bool = False) -> dict[str, object]:
     import torch
     import triton
+    if include_numpy:
+        import numpy
 
     build_date = os.environ.get("BUILD_DATE", "")
     image_commit = os.environ.get("GIT_COMMIT", "")
@@ -181,6 +183,7 @@ def _capture_environment() -> dict[str, object]:
         "pythonVersion": platform.python_version(),
         "torchVersion": str(torch.__version__),
         "tritonVersion": str(triton.__version__),
+        **({"numpyVersion": str(numpy.__version__)} if include_numpy else {}),
     }
     return {
         **release,
@@ -191,14 +194,15 @@ def _capture_environment() -> dict[str, object]:
     }
 
 
-def _validate_environment(value: object) -> dict[str, object]:
+def _validate_environment(value: object, schema_version: int = 1) -> dict[str, object]:
     environment = _object(value, "capture environment")
-    expected = {"cudaVersion", "deviceUuid", "driverVersion", "gpuName", "imageBuildDate", "imageGitCommit", "pythonVersion", "runtimeFingerprintDigest", "torchVersion", "tritonVersion"}
+    expected = {"cudaVersion", "deviceUuid", "driverVersion", "gpuName", "imageBuildDate", "imageGitCommit", "pythonVersion", "runtimeFingerprintDigest", "torchVersion", "tritonVersion"} | ({"numpyVersion"} if schema_version == 2 else set())
     if set(environment) != expected or any(not isinstance(environment[key], str) or not str(environment[key]).strip() for key in expected):
         raise ValueError("capture environment fields are invalid")
     if not BUILD_DATE.fullmatch(str(environment["imageBuildDate"])) or not GIT_COMMIT.fullmatch(str(environment["imageGitCommit"])) or "t4" not in str(environment["gpuName"]).lower():
         raise ValueError("capture environment release or GPU identity is invalid")
-    release = {key: environment[key] for key in ("imageBuildDate", "imageGitCommit", "cudaVersion", "pythonVersion", "torchVersion", "tritonVersion")}
+    release_keys = ("imageBuildDate", "imageGitCommit", "cudaVersion", "pythonVersion", "torchVersion", "tritonVersion") + (("numpyVersion",) if schema_version == 2 else ())
+    release = {key: environment[key] for key in release_keys}
     if environment["runtimeFingerprintDigest"] != sha256(f"noeris-kaggle-runtime-v1\0{canonical_json(release)}"):
         raise ValueError("capture runtime fingerprint is not recomputable")
     return environment
@@ -252,7 +256,7 @@ def _execute_capture_in_stage(
     if plan.get("schemaVersion") == 2 and (not isinstance(execution_capsule_digest, str) or not DIGEST.fullmatch(execution_capsule_digest) or not isinstance(execution_template_digest, str) or not DIGEST.fullmatch(execution_template_digest) or round_value.get("executionTemplateDigest") != execution_template_digest):
         raise ValueError("v2 capture requires exact execution capsule and template digests")
     _private_directory(root, allocation_id)
-    capture_environment = _validate_environment(environment)
+    capture_environment = _validate_environment(environment, int(plan["schemaVersion"]))
     capture_identity = _validate_worker_identity(worker_identity, plan, execution_template_digest)
     evaluator = _object(plan.get("evaluator"), "capture evaluator")
     samples, warmups = evaluator.get("samples"), evaluator.get("warmups")
@@ -356,7 +360,7 @@ def _recover_capture(target: Path, candidate: object, authorization: object, pla
         or (inputs.plan.get("schemaVersion") == 2 and (capture.get("executionCapsuleDigest") != execution_capsule_digest or capture.get("executionTemplateDigest") != execution_template_digest))
     ):
         raise ValueError("retained Kaggle capture binding or digest is invalid")
-    _validate_environment(capture.get("environment"))
+    _validate_environment(capture.get("environment"), int(inputs.plan["schemaVersion"]))
     _validate_worker_identity(capture.get("workerIdentity"), inputs.plan, execution_template_digest)
     usage_ref = _object(capture.get("usageSelfReport"), "retained capture usage ref")
     if usage_ref.get("path") != f"{allocation_id}/usage-self-report.json":
@@ -487,7 +491,7 @@ def run_fixed_kaggle_capsule(capsule_path: str, package_root: str, output_direct
     repository = _object(plan.get("repository"), "capsule plan repository")
     evaluator = _object(plan.get("evaluator"), "capsule plan evaluator")
     worker_identity = {"repositoryCommitSha": repository["commitSha"], "repositoryTreeDigest": repository["treeDigest"], "evaluatorDigest": evaluator["digest"], "executionTemplateDigest": template_digest}
-    result = _run_capture_core(candidate=candidate, authorization=authorization, plan_value=plan, allocation_id=allocation_id, output_directory=output_directory, kernel_ref=kernel_ref, environment=_capture_environment(), worker_identity=worker_identity, backend=TorchTritonBackend(), execution_capsule_digest=str(capsule["capsuleDigest"]), execution_template_digest=template_digest)
+    result = _run_capture_core(candidate=candidate, authorization=authorization, plan_value=plan, allocation_id=allocation_id, output_directory=output_directory, kernel_ref=kernel_ref, environment=_capture_environment(include_numpy=True), worker_identity=worker_identity, backend=TorchTritonBackend(), execution_capsule_digest=str(capsule["capsuleDigest"]), execution_template_digest=template_digest)
     after = load_execution_capsule(capsule_path, package_root)
     if after["capsuleDigest"] != capsule["capsuleDigest"] or _object(after["executionTemplate"], "post-execution template")["templateDigest"] != template_digest:
         raise ValueError("execution capsule or template changed during GPU work")

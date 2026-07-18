@@ -468,8 +468,14 @@ class TorchTritonBackend:
                     bits[offset] = (byte >> bit) & 1; offset += 1
         return torch.frombuffer(memoryview(bits), dtype=torch.uint8).to(torch.int8).mul_(2).sub_(1)
 
+    @staticmethod
+    def _float64_le_bytes(value) -> bytes:
+        if value.device.type != "cpu" or not value.is_contiguous() or str(value.dtype) != "torch.float64":
+            raise ValueError("raw tensor serialization requires contiguous CPU float64")
+        return value.numpy().astype("<f8", copy=False).tobytes(order="C")
+
     def measure(self, config: Mapping[str, int], shape: Mapping[str, int], seed: int, warmups: int, samples: int) -> RawMeasurement:
-        from .triton_kernels import matmul
+        from .zero_research_kaggle_matmul import matmul
         torch = self.torch
         normalized_shape = tuple(sorted((str(key), int(value)) for key, value in shape.items()))
         key = (normalized_shape, seed)
@@ -497,8 +503,8 @@ class TorchTritonBackend:
                 raise RuntimeError("CUDA timing produced a non-positive sample")
             timings_ns.append(nanoseconds)
         outputs = tuple(matmul(a, b, dict(config)).detach().cpu().to(torch.float64).contiguous() for _ in range(2))
-        output_bytes = tuple(value.numpy().astype("<f8", copy=False).tobytes(order="C") for value in outputs)
-        reference_bytes = reference.numpy().astype("<f8", copy=False).tobytes(order="C")
+        output_bytes = tuple(self._float64_le_bytes(value) for value in outputs)
+        reference_bytes = self._float64_le_bytes(reference)
         error = (outputs[0] - reference).abs()
         relative = error / reference.abs().clamp_min(torch.finfo(torch.float64).eps)
         return RawMeasurement(reference_bytes, output_bytes, tuple(timings_ns), float(error.max().item()), float(relative.max().item()), warmups)

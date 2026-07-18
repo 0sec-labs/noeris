@@ -182,6 +182,27 @@ verify them through an unavailable `.git` checkout. The legacy v1 Python seam
 remains for migration tests only and must not be accepted by real v2
 dispatch/intake.
 
+The deployable template is assembled deterministically from a fixed seven-file
+Python tree: a no-argument `run.py` bootstrap, a deliberately minimal package
+initializer, the capsule/capture/tournament/provider-runtime modules, and a
+dedicated minimal Triton matmul. The bootstrap uses only the Python standard
+library to preflight the full canonical capsule, selected plan-round template
+digest, private/offline T4 metadata, exact file and directory inventory, and
+every template byte before it imports any `research_engine` module. Bytecode
+generation is disabled before those imports. This makes the package executable
+without a Git checkout, dataset, model source, kernel source, competition
+source, or internet access. The controller must still independently install and
+pin the reviewed template manifest; provider self-verification is defense in
+depth, never accepted evidence.
+
+The v2 observable runtime fingerprint additionally pins the NumPy version used
+by PyTorch's explicit contiguous CPU-float64 to little-endian raw-byte
+serialization. The bootstrap creates and verifies an owner-only
+`/kaggle/working/0research` directory and places the absent capture target below
+it; it does not assume the provider's outer working directory is private. The
+v2 collector must treat that fixed prefix as transport layout and retain the
+allocation-rooted capture tree without rewriting the embedded artifact paths.
+
 The capture records Kaggle's observable `BUILD_DATE` and `GIT_COMMIT`, exact
 Python/Torch/Triton/CUDA versions, and a recomputable
 `noeris-kaggle-runtime-v1` fingerprint. It deliberately does not assert an OCI
