@@ -1,0 +1,4037 @@
+{
+  "generated_at_utc": "2026-05-26T19:28:24.566553+00:00",
+  "experiment": "cold_shape_cross_run_ablation_v2",
+  "db_path": ".noeris/cost-model-training.json",
+  "hardware": "NVIDIA A100-SXM4-80GB",
+  "environment": {
+    "timestamp_utc": "2026-05-26T19:28:24.566615+00:00",
+    "python_version": "3.14.4",
+    "platform": "macOS-26.5-arm64-arm-64bit-Mach-O",
+    "torch_version": null,
+    "triton_version": null,
+    "cuda_runtime_version": null,
+    "cuda_driver_version": null,
+    "gpu_name": null,
+    "gpu_count": null,
+    "git_commit": "d4222c2",
+    "git_dirty": true,
+    "command": "scripts/cold_shape_cross_run_ablation_v2.py"
+  },
+  "protocol": {
+    "operators": [
+      "rmsnorm",
+      "softmax",
+      "layernorm",
+      "cross_entropy"
+    ],
+    "conditions": [
+      "stateless_random",
+      "database_seeded",
+      "cost_model_ranking"
+    ],
+    "iterations": 6,
+    "configs_per_iteration": 1,
+    "seeds": [
+      0,
+      1,
+      2
+    ],
+    "heldout_per_operator": 1,
+    "heldout_policy": "largest_shape_size_proxy_per_operator",
+    "exclude_curated": true,
+    "min_candidates_after_filter": 6,
+    "metric": "higher_is_better"
+  },
+  "training": {
+    "records_after_holdout": 16,
+    "rows_after_holdout": 170,
+    "ranking_model": {
+      "method": "feature_knn_fallback",
+      "cost_model_train_result": {
+        "status": "sklearn_unavailable",
+        "training_size": 170,
+        "operator_counts": {
+          "1": 40,
+          "2": 45,
+          "3": 40,
+          "4": 45
+        }
+      },
+      "fallback_reason": "CostModel regressor unavailable; using pure-Python feature kNN ranking.",
+      "fallback_k": 5,
+      "fallback_training_rows": 170
+    },
+    "excluded_curated_rows": 180,
+    "excluded_nonpositive_rows": 0
+  },
+  "heldout_buckets": [
+    {
+      "key": "cross_entropy:llama3_128k:NVIDIA A100-SXM4-80GB",
+      "operator": "cross_entropy",
+      "bucket": "llama3_128k",
+      "hardware": "NVIDIA A100-SXM4-80GB",
+      "shape": {
+        "n_rows": 2048,
+        "n_cols": 128256,
+        "bucket": "llama3_128k"
+      },
+      "candidate_count": 9,
+      "oracle_best_metric": 314.41,
+      "oracle_best_config_id": "bs256_w8_s1",
+      "metric_name": "gb_per_s",
+      "shape_size_proxy": 262668288.0
+    },
+    {
+      "key": "layernorm:gpt_neox:NVIDIA A100-SXM4-80GB",
+      "operator": "layernorm",
+      "bucket": "gpt_neox",
+      "hardware": "NVIDIA A100-SXM4-80GB",
+      "shape": {
+        "n_rows": 4096,
+        "hidden_dim": 4096,
+        "bucket": "gpt_neox"
+      },
+      "candidate_count": 8,
+      "oracle_best_metric": 1338.06,
+      "oracle_best_config_id": "bs128_w8_s2",
+      "metric_name": "gb_per_s",
+      "shape_size_proxy": 16777216.0
+    },
+    {
+      "key": "rmsnorm:llama_13b:NVIDIA A100-SXM4-80GB",
+      "operator": "rmsnorm",
+      "bucket": "llama_13b",
+      "hardware": "NVIDIA A100-SXM4-80GB",
+      "shape": {
+        "n_rows": 4096,
+        "hidden_dim": 5120,
+        "bucket": "llama_13b"
+      },
+      "candidate_count": 8,
+      "oracle_best_metric": 1409.04,
+      "oracle_best_config_id": "bs128_w8_s1",
+      "metric_name": "gb_per_s",
+      "shape_size_proxy": 20971520.0
+    },
+    {
+      "key": "softmax:vocab_small:NVIDIA A100-SXM4-80GB",
+      "operator": "softmax",
+      "bucket": "vocab_small",
+      "hardware": "NVIDIA A100-SXM4-80GB",
+      "shape": {
+        "n_rows": 1024,
+        "n_cols": 32000,
+        "bucket": "vocab_small"
+      },
+      "candidate_count": 9,
+      "oracle_best_metric": 1372.55,
+      "oracle_best_config_id": "bs128_w16_s1",
+      "metric_name": "gb_per_s",
+      "shape_size_proxy": 32768000.0
+    }
+  ],
+  "summary": {
+    "stateless_random": {
+      "runs": 12,
+      "mean_final_metric": 1060.6592,
+      "median_final_metric": 1338.06,
+      "mean_final_normalized_best": 0.9604,
+      "median_final_normalized_best": 1.0,
+      "mean_final_regret": 47.8558,
+      "mean_final_regret_pct": 3.9561,
+      "median_iterations_to_90pct_best": 2.0,
+      "success_rate_90pct": 0.9167
+    },
+    "database_seeded": {
+      "runs": 12,
+      "mean_final_metric": 1054.045,
+      "median_final_metric": 1262.13,
+      "mean_final_normalized_best": 0.9604,
+      "median_final_normalized_best": 0.983,
+      "mean_final_regret": 54.47,
+      "mean_final_regret_pct": 3.9609,
+      "median_iterations_to_90pct_best": 1.0,
+      "success_rate_90pct": 0.75
+    },
+    "cost_model_ranking": {
+      "runs": 12,
+      "mean_final_metric": 1104.68,
+      "median_final_metric": 1347.635,
+      "mean_final_normalized_best": 0.9971,
+      "median_final_normalized_best": 1.0,
+      "mean_final_regret": 3.835,
+      "mean_final_regret_pct": 0.2866,
+      "median_iterations_to_90pct_best": 1.0,
+      "success_rate_90pct": 1.0
+    }
+  },
+  "interpretation": "The replay does not validate cross-run memory as the dominant selector under this v2 protocol. With curated starters removed, `cost_model_ranking` has the highest mean final normalized throughput; the paper should frame the persistent database as enabling replayable training data and selector inputs rather than claiming standalone compounding gains from database seeding.",
+  "by_bucket": {
+    "cross_entropy:llama3_128k:NVIDIA A100-SXM4-80GB": {
+      "operator": "cross_entropy",
+      "bucket": "llama3_128k",
+      "hardware": "NVIDIA A100-SXM4-80GB",
+      "shape": {
+        "n_rows": 2048,
+        "n_cols": 128256,
+        "bucket": "llama3_128k"
+      },
+      "metric_name": "gb_per_s",
+      "candidate_count": 9,
+      "oracle_best_metric": 314.41,
+      "oracle_best_config_id": "bs256_w8_s1",
+      "shape_size_proxy": 262668288.0,
+      "conditions": {
+        "stateless_random": {
+          "summary": {
+            "runs": 3,
+            "mean_final_metric": 306.75,
+            "median_final_metric": 314.41,
+            "mean_final_normalized_best": 0.9756,
+            "median_final_normalized_best": 1.0,
+            "mean_final_regret": 7.66,
+            "mean_final_regret_pct": 2.4363,
+            "median_iterations_to_90pct_best": 2.0,
+            "success_rate_90pct": 1.0
+          },
+          "runs": [
+            {
+              "condition": "stateless_random",
+              "seed": 0,
+              "order": [
+                "bs256_w8_s2",
+                "bs256_w2_s1",
+                "bs256_w4_s2",
+                "bs256_w8_s1",
+                "bs256_w1_s1",
+                "bs256_w4_s1",
+                "bs256_w16_s1",
+                "bs256_w2_s2",
+                "bs256_w1_s2"
+              ],
+              "iterations_to_90pct_best": 1,
+              "final_best_metric": 314.41,
+              "final_best_config_id": "bs256_w8_s1",
+              "final_normalized_best": 1.0,
+              "final_regret": 0.0,
+              "final_regret_pct": 0.0,
+              "history": [
+                {
+                  "iteration": 1,
+                  "evaluated_config_ids": [
+                    "bs256_w8_s2"
+                  ],
+                  "iteration_best_metric": 313.96,
+                  "best_so_far_metric": 313.96,
+                  "best_so_far_config_id": "bs256_w8_s2",
+                  "normalized_best": 0.9986,
+                  "regret": 0.45,
+                  "regret_pct": 0.1431,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 2,
+                  "evaluated_config_ids": [
+                    "bs256_w2_s1"
+                  ],
+                  "iteration_best_metric": 141.73,
+                  "best_so_far_metric": 313.96,
+                  "best_so_far_config_id": "bs256_w8_s2",
+                  "normalized_best": 0.9986,
+                  "regret": 0.45,
+                  "regret_pct": 0.1431,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 3,
+                  "evaluated_config_ids": [
+                    "bs256_w4_s2"
+                  ],
+                  "iteration_best_metric": 149.29,
+                  "best_so_far_metric": 313.96,
+                  "best_so_far_config_id": "bs256_w8_s2",
+                  "normalized_best": 0.9986,
+                  "regret": 0.45,
+                  "regret_pct": 0.1431,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 4,
+                  "evaluated_config_ids": [
+                    "bs256_w8_s1"
+                  ],
+                  "iteration_best_metric": 314.41,
+                  "best_so_far_metric": 314.41,
+                  "best_so_far_config_id": "bs256_w8_s1",
+                  "normalized_best": 1.0,
+                  "regret": 0.0,
+                  "regret_pct": 0.0,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 5,
+                  "evaluated_config_ids": [
+                    "bs256_w1_s1"
+                  ],
+                  "iteration_best_metric": 260.49,
+                  "best_so_far_metric": 314.41,
+                  "best_so_far_config_id": "bs256_w8_s1",
+                  "normalized_best": 1.0,
+                  "regret": 0.0,
+                  "regret_pct": 0.0,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 6,
+                  "evaluated_config_ids": [
+                    "bs256_w4_s1"
+                  ],
+                  "iteration_best_metric": 146.66,
+                  "best_so_far_metric": 314.41,
+                  "best_so_far_config_id": "bs256_w8_s1",
+                  "normalized_best": 1.0,
+                  "regret": 0.0,
+                  "regret_pct": 0.0,
+                  "reached_90pct_best": true
+                }
+              ]
+            },
+            {
+              "condition": "stateless_random",
+              "seed": 1,
+              "order": [
+                "bs256_w1_s1",
+                "bs256_w4_s2",
+                "bs256_w2_s2",
+                "bs256_w1_s2",
+                "bs256_w2_s1",
+                "bs256_w16_s1",
+                "bs256_w8_s1",
+                "bs256_w4_s1",
+                "bs256_w8_s2"
+              ],
+              "iterations_to_90pct_best": 6,
+              "final_best_metric": 291.43,
+              "final_best_config_id": "bs256_w16_s1",
+              "final_normalized_best": 0.9269,
+              "final_regret": 22.98,
+              "final_regret_pct": 7.3089,
+              "history": [
+                {
+                  "iteration": 1,
+                  "evaluated_config_ids": [
+                    "bs256_w1_s1"
+                  ],
+                  "iteration_best_metric": 260.49,
+                  "best_so_far_metric": 260.49,
+                  "best_so_far_config_id": "bs256_w1_s1",
+                  "normalized_best": 0.8285,
+                  "regret": 53.92,
+                  "regret_pct": 17.1496,
+                  "reached_90pct_best": false
+                },
+                {
+                  "iteration": 2,
+                  "evaluated_config_ids": [
+                    "bs256_w4_s2"
+                  ],
+                  "iteration_best_metric": 149.29,
+                  "best_so_far_metric": 260.49,
+                  "best_so_far_config_id": "bs256_w1_s1",
+                  "normalized_best": 0.8285,
+                  "regret": 53.92,
+                  "regret_pct": 17.1496,
+                  "reached_90pct_best": false
+                },
+                {
+                  "iteration": 3,
+                  "evaluated_config_ids": [
+                    "bs256_w2_s2"
+                  ],
+                  "iteration_best_metric": 145.95,
+                  "best_so_far_metric": 260.49,
+                  "best_so_far_config_id": "bs256_w1_s1",
+                  "normalized_best": 0.8285,
+                  "regret": 53.92,
+                  "regret_pct": 17.1496,
+                  "reached_90pct_best": false
+                },
+                {
+                  "iteration": 4,
+                  "evaluated_config_ids": [
+                    "bs256_w1_s2"
+                  ],
+                  "iteration_best_metric": 266.01,
+                  "best_so_far_metric": 266.01,
+                  "best_so_far_config_id": "bs256_w1_s2",
+                  "normalized_best": 0.8461,
+                  "regret": 48.4,
+                  "regret_pct": 15.3939,
+                  "reached_90pct_best": false
+                },
+                {
+                  "iteration": 5,
+                  "evaluated_config_ids": [
+                    "bs256_w2_s1"
+                  ],
+                  "iteration_best_metric": 141.73,
+                  "best_so_far_metric": 266.01,
+                  "best_so_far_config_id": "bs256_w1_s2",
+                  "normalized_best": 0.8461,
+                  "regret": 48.4,
+                  "regret_pct": 15.3939,
+                  "reached_90pct_best": false
+                },
+                {
+                  "iteration": 6,
+                  "evaluated_config_ids": [
+                    "bs256_w16_s1"
+                  ],
+                  "iteration_best_metric": 291.43,
+                  "best_so_far_metric": 291.43,
+                  "best_so_far_config_id": "bs256_w16_s1",
+                  "normalized_best": 0.9269,
+                  "regret": 22.98,
+                  "regret_pct": 7.3089,
+                  "reached_90pct_best": true
+                }
+              ]
+            },
+            {
+              "condition": "stateless_random",
+              "seed": 2,
+              "order": [
+                "bs256_w1_s1",
+                "bs256_w8_s1",
+                "bs256_w1_s2",
+                "bs256_w4_s1",
+                "bs256_w16_s1",
+                "bs256_w4_s2",
+                "bs256_w8_s2",
+                "bs256_w2_s1",
+                "bs256_w2_s2"
+              ],
+              "iterations_to_90pct_best": 2,
+              "final_best_metric": 314.41,
+              "final_best_config_id": "bs256_w8_s1",
+              "final_normalized_best": 1.0,
+              "final_regret": 0.0,
+              "final_regret_pct": 0.0,
+              "history": [
+                {
+                  "iteration": 1,
+                  "evaluated_config_ids": [
+                    "bs256_w1_s1"
+                  ],
+                  "iteration_best_metric": 260.49,
+                  "best_so_far_metric": 260.49,
+                  "best_so_far_config_id": "bs256_w1_s1",
+                  "normalized_best": 0.8285,
+                  "regret": 53.92,
+                  "regret_pct": 17.1496,
+                  "reached_90pct_best": false
+                },
+                {
+                  "iteration": 2,
+                  "evaluated_config_ids": [
+                    "bs256_w8_s1"
+                  ],
+                  "iteration_best_metric": 314.41,
+                  "best_so_far_metric": 314.41,
+                  "best_so_far_config_id": "bs256_w8_s1",
+                  "normalized_best": 1.0,
+                  "regret": 0.0,
+                  "regret_pct": 0.0,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 3,
+                  "evaluated_config_ids": [
+                    "bs256_w1_s2"
+                  ],
+                  "iteration_best_metric": 266.01,
+                  "best_so_far_metric": 314.41,
+                  "best_so_far_config_id": "bs256_w8_s1",
+                  "normalized_best": 1.0,
+                  "regret": 0.0,
+                  "regret_pct": 0.0,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 4,
+                  "evaluated_config_ids": [
+                    "bs256_w4_s1"
+                  ],
+                  "iteration_best_metric": 146.66,
+                  "best_so_far_metric": 314.41,
+                  "best_so_far_config_id": "bs256_w8_s1",
+                  "normalized_best": 1.0,
+                  "regret": 0.0,
+                  "regret_pct": 0.0,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 5,
+                  "evaluated_config_ids": [
+                    "bs256_w16_s1"
+                  ],
+                  "iteration_best_metric": 291.43,
+                  "best_so_far_metric": 314.41,
+                  "best_so_far_config_id": "bs256_w8_s1",
+                  "normalized_best": 1.0,
+                  "regret": 0.0,
+                  "regret_pct": 0.0,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 6,
+                  "evaluated_config_ids": [
+                    "bs256_w4_s2"
+                  ],
+                  "iteration_best_metric": 149.29,
+                  "best_so_far_metric": 314.41,
+                  "best_so_far_config_id": "bs256_w8_s1",
+                  "normalized_best": 1.0,
+                  "regret": 0.0,
+                  "regret_pct": 0.0,
+                  "reached_90pct_best": true
+                }
+              ]
+            }
+          ]
+        },
+        "database_seeded": {
+          "summary": {
+            "runs": 3,
+            "mean_final_metric": 314.41,
+            "median_final_metric": 314.41,
+            "mean_final_normalized_best": 1.0,
+            "median_final_normalized_best": 1.0,
+            "mean_final_regret": 0.0,
+            "mean_final_regret_pct": 0.0,
+            "median_iterations_to_90pct_best": 1.0,
+            "success_rate_90pct": 1.0
+          },
+          "runs": [
+            {
+              "condition": "database_seeded",
+              "seed": 0,
+              "order": [
+                "bs256_w16_s1",
+                "bs256_w8_s2",
+                "bs256_w8_s1",
+                "bs256_w4_s1",
+                "bs256_w4_s2",
+                "bs256_w2_s2",
+                "bs256_w2_s1",
+                "bs256_w1_s2",
+                "bs256_w1_s1"
+              ],
+              "iterations_to_90pct_best": 1,
+              "final_best_metric": 314.41,
+              "final_best_config_id": "bs256_w8_s1",
+              "final_normalized_best": 1.0,
+              "final_regret": 0.0,
+              "final_regret_pct": 0.0,
+              "history": [
+                {
+                  "iteration": 1,
+                  "evaluated_config_ids": [
+                    "bs256_w16_s1"
+                  ],
+                  "iteration_best_metric": 291.43,
+                  "best_so_far_metric": 291.43,
+                  "best_so_far_config_id": "bs256_w16_s1",
+                  "normalized_best": 0.9269,
+                  "regret": 22.98,
+                  "regret_pct": 7.3089,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 2,
+                  "evaluated_config_ids": [
+                    "bs256_w8_s2"
+                  ],
+                  "iteration_best_metric": 313.96,
+                  "best_so_far_metric": 313.96,
+                  "best_so_far_config_id": "bs256_w8_s2",
+                  "normalized_best": 0.9986,
+                  "regret": 0.45,
+                  "regret_pct": 0.1431,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 3,
+                  "evaluated_config_ids": [
+                    "bs256_w8_s1"
+                  ],
+                  "iteration_best_metric": 314.41,
+                  "best_so_far_metric": 314.41,
+                  "best_so_far_config_id": "bs256_w8_s1",
+                  "normalized_best": 1.0,
+                  "regret": 0.0,
+                  "regret_pct": 0.0,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 4,
+                  "evaluated_config_ids": [
+                    "bs256_w4_s1"
+                  ],
+                  "iteration_best_metric": 146.66,
+                  "best_so_far_metric": 314.41,
+                  "best_so_far_config_id": "bs256_w8_s1",
+                  "normalized_best": 1.0,
+                  "regret": 0.0,
+                  "regret_pct": 0.0,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 5,
+                  "evaluated_config_ids": [
+                    "bs256_w4_s2"
+                  ],
+                  "iteration_best_metric": 149.29,
+                  "best_so_far_metric": 314.41,
+                  "best_so_far_config_id": "bs256_w8_s1",
+                  "normalized_best": 1.0,
+                  "regret": 0.0,
+                  "regret_pct": 0.0,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 6,
+                  "evaluated_config_ids": [
+                    "bs256_w2_s2"
+                  ],
+                  "iteration_best_metric": 145.95,
+                  "best_so_far_metric": 314.41,
+                  "best_so_far_config_id": "bs256_w8_s1",
+                  "normalized_best": 1.0,
+                  "regret": 0.0,
+                  "regret_pct": 0.0,
+                  "reached_90pct_best": true
+                }
+              ]
+            },
+            {
+              "condition": "database_seeded",
+              "seed": 1,
+              "order": [
+                "bs256_w16_s1",
+                "bs256_w8_s2",
+                "bs256_w8_s1",
+                "bs256_w4_s1",
+                "bs256_w4_s2",
+                "bs256_w2_s2",
+                "bs256_w2_s1",
+                "bs256_w1_s2",
+                "bs256_w1_s1"
+              ],
+              "iterations_to_90pct_best": 1,
+              "final_best_metric": 314.41,
+              "final_best_config_id": "bs256_w8_s1",
+              "final_normalized_best": 1.0,
+              "final_regret": 0.0,
+              "final_regret_pct": 0.0,
+              "history": [
+                {
+                  "iteration": 1,
+                  "evaluated_config_ids": [
+                    "bs256_w16_s1"
+                  ],
+                  "iteration_best_metric": 291.43,
+                  "best_so_far_metric": 291.43,
+                  "best_so_far_config_id": "bs256_w16_s1",
+                  "normalized_best": 0.9269,
+                  "regret": 22.98,
+                  "regret_pct": 7.3089,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 2,
+                  "evaluated_config_ids": [
+                    "bs256_w8_s2"
+                  ],
+                  "iteration_best_metric": 313.96,
+                  "best_so_far_metric": 313.96,
+                  "best_so_far_config_id": "bs256_w8_s2",
+                  "normalized_best": 0.9986,
+                  "regret": 0.45,
+                  "regret_pct": 0.1431,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 3,
+                  "evaluated_config_ids": [
+                    "bs256_w8_s1"
+                  ],
+                  "iteration_best_metric": 314.41,
+                  "best_so_far_metric": 314.41,
+                  "best_so_far_config_id": "bs256_w8_s1",
+                  "normalized_best": 1.0,
+                  "regret": 0.0,
+                  "regret_pct": 0.0,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 4,
+                  "evaluated_config_ids": [
+                    "bs256_w4_s1"
+                  ],
+                  "iteration_best_metric": 146.66,
+                  "best_so_far_metric": 314.41,
+                  "best_so_far_config_id": "bs256_w8_s1",
+                  "normalized_best": 1.0,
+                  "regret": 0.0,
+                  "regret_pct": 0.0,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 5,
+                  "evaluated_config_ids": [
+                    "bs256_w4_s2"
+                  ],
+                  "iteration_best_metric": 149.29,
+                  "best_so_far_metric": 314.41,
+                  "best_so_far_config_id": "bs256_w8_s1",
+                  "normalized_best": 1.0,
+                  "regret": 0.0,
+                  "regret_pct": 0.0,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 6,
+                  "evaluated_config_ids": [
+                    "bs256_w2_s2"
+                  ],
+                  "iteration_best_metric": 145.95,
+                  "best_so_far_metric": 314.41,
+                  "best_so_far_config_id": "bs256_w8_s1",
+                  "normalized_best": 1.0,
+                  "regret": 0.0,
+                  "regret_pct": 0.0,
+                  "reached_90pct_best": true
+                }
+              ]
+            },
+            {
+              "condition": "database_seeded",
+              "seed": 2,
+              "order": [
+                "bs256_w16_s1",
+                "bs256_w8_s2",
+                "bs256_w8_s1",
+                "bs256_w4_s1",
+                "bs256_w4_s2",
+                "bs256_w2_s2",
+                "bs256_w2_s1",
+                "bs256_w1_s2",
+                "bs256_w1_s1"
+              ],
+              "iterations_to_90pct_best": 1,
+              "final_best_metric": 314.41,
+              "final_best_config_id": "bs256_w8_s1",
+              "final_normalized_best": 1.0,
+              "final_regret": 0.0,
+              "final_regret_pct": 0.0,
+              "history": [
+                {
+                  "iteration": 1,
+                  "evaluated_config_ids": [
+                    "bs256_w16_s1"
+                  ],
+                  "iteration_best_metric": 291.43,
+                  "best_so_far_metric": 291.43,
+                  "best_so_far_config_id": "bs256_w16_s1",
+                  "normalized_best": 0.9269,
+                  "regret": 22.98,
+                  "regret_pct": 7.3089,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 2,
+                  "evaluated_config_ids": [
+                    "bs256_w8_s2"
+                  ],
+                  "iteration_best_metric": 313.96,
+                  "best_so_far_metric": 313.96,
+                  "best_so_far_config_id": "bs256_w8_s2",
+                  "normalized_best": 0.9986,
+                  "regret": 0.45,
+                  "regret_pct": 0.1431,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 3,
+                  "evaluated_config_ids": [
+                    "bs256_w8_s1"
+                  ],
+                  "iteration_best_metric": 314.41,
+                  "best_so_far_metric": 314.41,
+                  "best_so_far_config_id": "bs256_w8_s1",
+                  "normalized_best": 1.0,
+                  "regret": 0.0,
+                  "regret_pct": 0.0,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 4,
+                  "evaluated_config_ids": [
+                    "bs256_w4_s1"
+                  ],
+                  "iteration_best_metric": 146.66,
+                  "best_so_far_metric": 314.41,
+                  "best_so_far_config_id": "bs256_w8_s1",
+                  "normalized_best": 1.0,
+                  "regret": 0.0,
+                  "regret_pct": 0.0,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 5,
+                  "evaluated_config_ids": [
+                    "bs256_w4_s2"
+                  ],
+                  "iteration_best_metric": 149.29,
+                  "best_so_far_metric": 314.41,
+                  "best_so_far_config_id": "bs256_w8_s1",
+                  "normalized_best": 1.0,
+                  "regret": 0.0,
+                  "regret_pct": 0.0,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 6,
+                  "evaluated_config_ids": [
+                    "bs256_w2_s2"
+                  ],
+                  "iteration_best_metric": 145.95,
+                  "best_so_far_metric": 314.41,
+                  "best_so_far_config_id": "bs256_w8_s1",
+                  "normalized_best": 1.0,
+                  "regret": 0.0,
+                  "regret_pct": 0.0,
+                  "reached_90pct_best": true
+                }
+              ]
+            }
+          ]
+        },
+        "cost_model_ranking": {
+          "summary": {
+            "runs": 3,
+            "mean_final_metric": 314.41,
+            "median_final_metric": 314.41,
+            "mean_final_normalized_best": 1.0,
+            "median_final_normalized_best": 1.0,
+            "mean_final_regret": 0.0,
+            "mean_final_regret_pct": 0.0,
+            "median_iterations_to_90pct_best": 1.0,
+            "success_rate_90pct": 1.0
+          },
+          "runs": [
+            {
+              "condition": "cost_model_ranking",
+              "seed": 0,
+              "order": [
+                "bs256_w16_s1",
+                "bs256_w8_s1",
+                "bs256_w8_s2",
+                "bs256_w4_s2",
+                "bs256_w4_s1",
+                "bs256_w2_s2",
+                "bs256_w1_s2",
+                "bs256_w2_s1",
+                "bs256_w1_s1"
+              ],
+              "iterations_to_90pct_best": 1,
+              "final_best_metric": 314.41,
+              "final_best_config_id": "bs256_w8_s1",
+              "final_normalized_best": 1.0,
+              "final_regret": 0.0,
+              "final_regret_pct": 0.0,
+              "history": [
+                {
+                  "iteration": 1,
+                  "evaluated_config_ids": [
+                    "bs256_w16_s1"
+                  ],
+                  "iteration_best_metric": 291.43,
+                  "best_so_far_metric": 291.43,
+                  "best_so_far_config_id": "bs256_w16_s1",
+                  "normalized_best": 0.9269,
+                  "regret": 22.98,
+                  "regret_pct": 7.3089,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 2,
+                  "evaluated_config_ids": [
+                    "bs256_w8_s1"
+                  ],
+                  "iteration_best_metric": 314.41,
+                  "best_so_far_metric": 314.41,
+                  "best_so_far_config_id": "bs256_w8_s1",
+                  "normalized_best": 1.0,
+                  "regret": 0.0,
+                  "regret_pct": 0.0,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 3,
+                  "evaluated_config_ids": [
+                    "bs256_w8_s2"
+                  ],
+                  "iteration_best_metric": 313.96,
+                  "best_so_far_metric": 314.41,
+                  "best_so_far_config_id": "bs256_w8_s1",
+                  "normalized_best": 1.0,
+                  "regret": 0.0,
+                  "regret_pct": 0.0,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 4,
+                  "evaluated_config_ids": [
+                    "bs256_w4_s2"
+                  ],
+                  "iteration_best_metric": 149.29,
+                  "best_so_far_metric": 314.41,
+                  "best_so_far_config_id": "bs256_w8_s1",
+                  "normalized_best": 1.0,
+                  "regret": 0.0,
+                  "regret_pct": 0.0,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 5,
+                  "evaluated_config_ids": [
+                    "bs256_w4_s1"
+                  ],
+                  "iteration_best_metric": 146.66,
+                  "best_so_far_metric": 314.41,
+                  "best_so_far_config_id": "bs256_w8_s1",
+                  "normalized_best": 1.0,
+                  "regret": 0.0,
+                  "regret_pct": 0.0,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 6,
+                  "evaluated_config_ids": [
+                    "bs256_w2_s2"
+                  ],
+                  "iteration_best_metric": 145.95,
+                  "best_so_far_metric": 314.41,
+                  "best_so_far_config_id": "bs256_w8_s1",
+                  "normalized_best": 1.0,
+                  "regret": 0.0,
+                  "regret_pct": 0.0,
+                  "reached_90pct_best": true
+                }
+              ]
+            },
+            {
+              "condition": "cost_model_ranking",
+              "seed": 1,
+              "order": [
+                "bs256_w16_s1",
+                "bs256_w8_s1",
+                "bs256_w8_s2",
+                "bs256_w4_s2",
+                "bs256_w4_s1",
+                "bs256_w2_s2",
+                "bs256_w1_s2",
+                "bs256_w2_s1",
+                "bs256_w1_s1"
+              ],
+              "iterations_to_90pct_best": 1,
+              "final_best_metric": 314.41,
+              "final_best_config_id": "bs256_w8_s1",
+              "final_normalized_best": 1.0,
+              "final_regret": 0.0,
+              "final_regret_pct": 0.0,
+              "history": [
+                {
+                  "iteration": 1,
+                  "evaluated_config_ids": [
+                    "bs256_w16_s1"
+                  ],
+                  "iteration_best_metric": 291.43,
+                  "best_so_far_metric": 291.43,
+                  "best_so_far_config_id": "bs256_w16_s1",
+                  "normalized_best": 0.9269,
+                  "regret": 22.98,
+                  "regret_pct": 7.3089,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 2,
+                  "evaluated_config_ids": [
+                    "bs256_w8_s1"
+                  ],
+                  "iteration_best_metric": 314.41,
+                  "best_so_far_metric": 314.41,
+                  "best_so_far_config_id": "bs256_w8_s1",
+                  "normalized_best": 1.0,
+                  "regret": 0.0,
+                  "regret_pct": 0.0,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 3,
+                  "evaluated_config_ids": [
+                    "bs256_w8_s2"
+                  ],
+                  "iteration_best_metric": 313.96,
+                  "best_so_far_metric": 314.41,
+                  "best_so_far_config_id": "bs256_w8_s1",
+                  "normalized_best": 1.0,
+                  "regret": 0.0,
+                  "regret_pct": 0.0,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 4,
+                  "evaluated_config_ids": [
+                    "bs256_w4_s2"
+                  ],
+                  "iteration_best_metric": 149.29,
+                  "best_so_far_metric": 314.41,
+                  "best_so_far_config_id": "bs256_w8_s1",
+                  "normalized_best": 1.0,
+                  "regret": 0.0,
+                  "regret_pct": 0.0,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 5,
+                  "evaluated_config_ids": [
+                    "bs256_w4_s1"
+                  ],
+                  "iteration_best_metric": 146.66,
+                  "best_so_far_metric": 314.41,
+                  "best_so_far_config_id": "bs256_w8_s1",
+                  "normalized_best": 1.0,
+                  "regret": 0.0,
+                  "regret_pct": 0.0,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 6,
+                  "evaluated_config_ids": [
+                    "bs256_w2_s2"
+                  ],
+                  "iteration_best_metric": 145.95,
+                  "best_so_far_metric": 314.41,
+                  "best_so_far_config_id": "bs256_w8_s1",
+                  "normalized_best": 1.0,
+                  "regret": 0.0,
+                  "regret_pct": 0.0,
+                  "reached_90pct_best": true
+                }
+              ]
+            },
+            {
+              "condition": "cost_model_ranking",
+              "seed": 2,
+              "order": [
+                "bs256_w16_s1",
+                "bs256_w8_s1",
+                "bs256_w8_s2",
+                "bs256_w4_s2",
+                "bs256_w4_s1",
+                "bs256_w2_s2",
+                "bs256_w1_s2",
+                "bs256_w2_s1",
+                "bs256_w1_s1"
+              ],
+              "iterations_to_90pct_best": 1,
+              "final_best_metric": 314.41,
+              "final_best_config_id": "bs256_w8_s1",
+              "final_normalized_best": 1.0,
+              "final_regret": 0.0,
+              "final_regret_pct": 0.0,
+              "history": [
+                {
+                  "iteration": 1,
+                  "evaluated_config_ids": [
+                    "bs256_w16_s1"
+                  ],
+                  "iteration_best_metric": 291.43,
+                  "best_so_far_metric": 291.43,
+                  "best_so_far_config_id": "bs256_w16_s1",
+                  "normalized_best": 0.9269,
+                  "regret": 22.98,
+                  "regret_pct": 7.3089,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 2,
+                  "evaluated_config_ids": [
+                    "bs256_w8_s1"
+                  ],
+                  "iteration_best_metric": 314.41,
+                  "best_so_far_metric": 314.41,
+                  "best_so_far_config_id": "bs256_w8_s1",
+                  "normalized_best": 1.0,
+                  "regret": 0.0,
+                  "regret_pct": 0.0,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 3,
+                  "evaluated_config_ids": [
+                    "bs256_w8_s2"
+                  ],
+                  "iteration_best_metric": 313.96,
+                  "best_so_far_metric": 314.41,
+                  "best_so_far_config_id": "bs256_w8_s1",
+                  "normalized_best": 1.0,
+                  "regret": 0.0,
+                  "regret_pct": 0.0,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 4,
+                  "evaluated_config_ids": [
+                    "bs256_w4_s2"
+                  ],
+                  "iteration_best_metric": 149.29,
+                  "best_so_far_metric": 314.41,
+                  "best_so_far_config_id": "bs256_w8_s1",
+                  "normalized_best": 1.0,
+                  "regret": 0.0,
+                  "regret_pct": 0.0,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 5,
+                  "evaluated_config_ids": [
+                    "bs256_w4_s1"
+                  ],
+                  "iteration_best_metric": 146.66,
+                  "best_so_far_metric": 314.41,
+                  "best_so_far_config_id": "bs256_w8_s1",
+                  "normalized_best": 1.0,
+                  "regret": 0.0,
+                  "regret_pct": 0.0,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 6,
+                  "evaluated_config_ids": [
+                    "bs256_w2_s2"
+                  ],
+                  "iteration_best_metric": 145.95,
+                  "best_so_far_metric": 314.41,
+                  "best_so_far_config_id": "bs256_w8_s1",
+                  "normalized_best": 1.0,
+                  "regret": 0.0,
+                  "regret_pct": 0.0,
+                  "reached_90pct_best": true
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "layernorm:gpt_neox:NVIDIA A100-SXM4-80GB": {
+      "operator": "layernorm",
+      "bucket": "gpt_neox",
+      "hardware": "NVIDIA A100-SXM4-80GB",
+      "shape": {
+        "n_rows": 4096,
+        "hidden_dim": 4096,
+        "bucket": "gpt_neox"
+      },
+      "metric_name": "gb_per_s",
+      "candidate_count": 8,
+      "oracle_best_metric": 1338.06,
+      "oracle_best_config_id": "bs128_w8_s2",
+      "shape_size_proxy": 16777216.0,
+      "conditions": {
+        "stateless_random": {
+          "summary": {
+            "runs": 3,
+            "mean_final_metric": 1332.9467,
+            "median_final_metric": 1338.06,
+            "mean_final_normalized_best": 0.9962,
+            "median_final_normalized_best": 1.0,
+            "mean_final_regret": 5.1133,
+            "mean_final_regret_pct": 0.3821,
+            "median_iterations_to_90pct_best": 1.0,
+            "success_rate_90pct": 1.0
+          },
+          "runs": [
+            {
+              "condition": "stateless_random",
+              "seed": 0,
+              "order": [
+                "bs128_w4_s1",
+                "bs128_w4_s2",
+                "bs128_w2_s2",
+                "bs128_w1_s1",
+                "bs128_w2_s1",
+                "bs128_w8_s1",
+                "bs128_w1_s2",
+                "bs128_w8_s2"
+              ],
+              "iterations_to_90pct_best": 1,
+              "final_best_metric": 1322.72,
+              "final_best_config_id": "bs128_w4_s1",
+              "final_normalized_best": 0.9885,
+              "final_regret": 15.34,
+              "final_regret_pct": 1.1464,
+              "history": [
+                {
+                  "iteration": 1,
+                  "evaluated_config_ids": [
+                    "bs128_w4_s1"
+                  ],
+                  "iteration_best_metric": 1322.72,
+                  "best_so_far_metric": 1322.72,
+                  "best_so_far_config_id": "bs128_w4_s1",
+                  "normalized_best": 0.9885,
+                  "regret": 15.34,
+                  "regret_pct": 1.1464,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 2,
+                  "evaluated_config_ids": [
+                    "bs128_w4_s2"
+                  ],
+                  "iteration_best_metric": 1322.03,
+                  "best_so_far_metric": 1322.72,
+                  "best_so_far_config_id": "bs128_w4_s1",
+                  "normalized_best": 0.9885,
+                  "regret": 15.34,
+                  "regret_pct": 1.1464,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 3,
+                  "evaluated_config_ids": [
+                    "bs128_w2_s2"
+                  ],
+                  "iteration_best_metric": 1306.4,
+                  "best_so_far_metric": 1322.72,
+                  "best_so_far_config_id": "bs128_w4_s1",
+                  "normalized_best": 0.9885,
+                  "regret": 15.34,
+                  "regret_pct": 1.1464,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 4,
+                  "evaluated_config_ids": [
+                    "bs128_w1_s1"
+                  ],
+                  "iteration_best_metric": 1293.89,
+                  "best_so_far_metric": 1322.72,
+                  "best_so_far_config_id": "bs128_w4_s1",
+                  "normalized_best": 0.9885,
+                  "regret": 15.34,
+                  "regret_pct": 1.1464,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 5,
+                  "evaluated_config_ids": [
+                    "bs128_w2_s1"
+                  ],
+                  "iteration_best_metric": 1303.17,
+                  "best_so_far_metric": 1322.72,
+                  "best_so_far_config_id": "bs128_w4_s1",
+                  "normalized_best": 0.9885,
+                  "regret": 15.34,
+                  "regret_pct": 1.1464,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 6,
+                  "evaluated_config_ids": [
+                    "bs128_w8_s1"
+                  ],
+                  "iteration_best_metric": 1321.98,
+                  "best_so_far_metric": 1322.72,
+                  "best_so_far_config_id": "bs128_w4_s1",
+                  "normalized_best": 0.9885,
+                  "regret": 15.34,
+                  "regret_pct": 1.1464,
+                  "reached_90pct_best": true
+                }
+              ]
+            },
+            {
+              "condition": "stateless_random",
+              "seed": 1,
+              "order": [
+                "bs128_w2_s1",
+                "bs128_w1_s2",
+                "bs128_w1_s1",
+                "bs128_w8_s1",
+                "bs128_w8_s2",
+                "bs128_w4_s1",
+                "bs128_w4_s2",
+                "bs128_w2_s2"
+              ],
+              "iterations_to_90pct_best": 1,
+              "final_best_metric": 1338.06,
+              "final_best_config_id": "bs128_w8_s2",
+              "final_normalized_best": 1.0,
+              "final_regret": 0.0,
+              "final_regret_pct": 0.0,
+              "history": [
+                {
+                  "iteration": 1,
+                  "evaluated_config_ids": [
+                    "bs128_w2_s1"
+                  ],
+                  "iteration_best_metric": 1303.17,
+                  "best_so_far_metric": 1303.17,
+                  "best_so_far_config_id": "bs128_w2_s1",
+                  "normalized_best": 0.9739,
+                  "regret": 34.89,
+                  "regret_pct": 2.6075,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 2,
+                  "evaluated_config_ids": [
+                    "bs128_w1_s2"
+                  ],
+                  "iteration_best_metric": 1281.15,
+                  "best_so_far_metric": 1303.17,
+                  "best_so_far_config_id": "bs128_w2_s1",
+                  "normalized_best": 0.9739,
+                  "regret": 34.89,
+                  "regret_pct": 2.6075,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 3,
+                  "evaluated_config_ids": [
+                    "bs128_w1_s1"
+                  ],
+                  "iteration_best_metric": 1293.89,
+                  "best_so_far_metric": 1303.17,
+                  "best_so_far_config_id": "bs128_w2_s1",
+                  "normalized_best": 0.9739,
+                  "regret": 34.89,
+                  "regret_pct": 2.6075,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 4,
+                  "evaluated_config_ids": [
+                    "bs128_w8_s1"
+                  ],
+                  "iteration_best_metric": 1321.98,
+                  "best_so_far_metric": 1321.98,
+                  "best_so_far_config_id": "bs128_w8_s1",
+                  "normalized_best": 0.988,
+                  "regret": 16.08,
+                  "regret_pct": 1.2017,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 5,
+                  "evaluated_config_ids": [
+                    "bs128_w8_s2"
+                  ],
+                  "iteration_best_metric": 1338.06,
+                  "best_so_far_metric": 1338.06,
+                  "best_so_far_config_id": "bs128_w8_s2",
+                  "normalized_best": 1.0,
+                  "regret": 0.0,
+                  "regret_pct": 0.0,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 6,
+                  "evaluated_config_ids": [
+                    "bs128_w4_s1"
+                  ],
+                  "iteration_best_metric": 1322.72,
+                  "best_so_far_metric": 1338.06,
+                  "best_so_far_config_id": "bs128_w8_s2",
+                  "normalized_best": 1.0,
+                  "regret": 0.0,
+                  "regret_pct": 0.0,
+                  "reached_90pct_best": true
+                }
+              ]
+            },
+            {
+              "condition": "stateless_random",
+              "seed": 2,
+              "order": [
+                "bs128_w1_s2",
+                "bs128_w8_s1",
+                "bs128_w4_s1",
+                "bs128_w2_s2",
+                "bs128_w8_s2",
+                "bs128_w1_s1",
+                "bs128_w4_s2",
+                "bs128_w2_s1"
+              ],
+              "iterations_to_90pct_best": 1,
+              "final_best_metric": 1338.06,
+              "final_best_config_id": "bs128_w8_s2",
+              "final_normalized_best": 1.0,
+              "final_regret": 0.0,
+              "final_regret_pct": 0.0,
+              "history": [
+                {
+                  "iteration": 1,
+                  "evaluated_config_ids": [
+                    "bs128_w1_s2"
+                  ],
+                  "iteration_best_metric": 1281.15,
+                  "best_so_far_metric": 1281.15,
+                  "best_so_far_config_id": "bs128_w1_s2",
+                  "normalized_best": 0.9575,
+                  "regret": 56.91,
+                  "regret_pct": 4.2532,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 2,
+                  "evaluated_config_ids": [
+                    "bs128_w8_s1"
+                  ],
+                  "iteration_best_metric": 1321.98,
+                  "best_so_far_metric": 1321.98,
+                  "best_so_far_config_id": "bs128_w8_s1",
+                  "normalized_best": 0.988,
+                  "regret": 16.08,
+                  "regret_pct": 1.2017,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 3,
+                  "evaluated_config_ids": [
+                    "bs128_w4_s1"
+                  ],
+                  "iteration_best_metric": 1322.72,
+                  "best_so_far_metric": 1322.72,
+                  "best_so_far_config_id": "bs128_w4_s1",
+                  "normalized_best": 0.9885,
+                  "regret": 15.34,
+                  "regret_pct": 1.1464,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 4,
+                  "evaluated_config_ids": [
+                    "bs128_w2_s2"
+                  ],
+                  "iteration_best_metric": 1306.4,
+                  "best_so_far_metric": 1322.72,
+                  "best_so_far_config_id": "bs128_w4_s1",
+                  "normalized_best": 0.9885,
+                  "regret": 15.34,
+                  "regret_pct": 1.1464,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 5,
+                  "evaluated_config_ids": [
+                    "bs128_w8_s2"
+                  ],
+                  "iteration_best_metric": 1338.06,
+                  "best_so_far_metric": 1338.06,
+                  "best_so_far_config_id": "bs128_w8_s2",
+                  "normalized_best": 1.0,
+                  "regret": 0.0,
+                  "regret_pct": 0.0,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 6,
+                  "evaluated_config_ids": [
+                    "bs128_w1_s1"
+                  ],
+                  "iteration_best_metric": 1293.89,
+                  "best_so_far_metric": 1338.06,
+                  "best_so_far_config_id": "bs128_w8_s2",
+                  "normalized_best": 1.0,
+                  "regret": 0.0,
+                  "regret_pct": 0.0,
+                  "reached_90pct_best": true
+                }
+              ]
+            }
+          ]
+        },
+        "database_seeded": {
+          "summary": {
+            "runs": 3,
+            "mean_final_metric": 1322.72,
+            "median_final_metric": 1322.72,
+            "mean_final_normalized_best": 0.9885,
+            "median_final_normalized_best": 0.9885,
+            "mean_final_regret": 15.34,
+            "mean_final_regret_pct": 1.1464,
+            "median_iterations_to_90pct_best": 1.0,
+            "success_rate_90pct": 1.0
+          },
+          "runs": [
+            {
+              "condition": "database_seeded",
+              "seed": 0,
+              "order": [
+                "bs128_w4_s2",
+                "bs128_w1_s1",
+                "bs128_w1_s2",
+                "bs128_w2_s1",
+                "bs128_w4_s1",
+                "bs128_w2_s2",
+                "bs128_w8_s1",
+                "bs128_w8_s2"
+              ],
+              "iterations_to_90pct_best": 1,
+              "final_best_metric": 1322.72,
+              "final_best_config_id": "bs128_w4_s1",
+              "final_normalized_best": 0.9885,
+              "final_regret": 15.34,
+              "final_regret_pct": 1.1464,
+              "history": [
+                {
+                  "iteration": 1,
+                  "evaluated_config_ids": [
+                    "bs128_w4_s2"
+                  ],
+                  "iteration_best_metric": 1322.03,
+                  "best_so_far_metric": 1322.03,
+                  "best_so_far_config_id": "bs128_w4_s2",
+                  "normalized_best": 0.988,
+                  "regret": 16.03,
+                  "regret_pct": 1.198,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 2,
+                  "evaluated_config_ids": [
+                    "bs128_w1_s1"
+                  ],
+                  "iteration_best_metric": 1293.89,
+                  "best_so_far_metric": 1322.03,
+                  "best_so_far_config_id": "bs128_w4_s2",
+                  "normalized_best": 0.988,
+                  "regret": 16.03,
+                  "regret_pct": 1.198,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 3,
+                  "evaluated_config_ids": [
+                    "bs128_w1_s2"
+                  ],
+                  "iteration_best_metric": 1281.15,
+                  "best_so_far_metric": 1322.03,
+                  "best_so_far_config_id": "bs128_w4_s2",
+                  "normalized_best": 0.988,
+                  "regret": 16.03,
+                  "regret_pct": 1.198,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 4,
+                  "evaluated_config_ids": [
+                    "bs128_w2_s1"
+                  ],
+                  "iteration_best_metric": 1303.17,
+                  "best_so_far_metric": 1322.03,
+                  "best_so_far_config_id": "bs128_w4_s2",
+                  "normalized_best": 0.988,
+                  "regret": 16.03,
+                  "regret_pct": 1.198,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 5,
+                  "evaluated_config_ids": [
+                    "bs128_w4_s1"
+                  ],
+                  "iteration_best_metric": 1322.72,
+                  "best_so_far_metric": 1322.72,
+                  "best_so_far_config_id": "bs128_w4_s1",
+                  "normalized_best": 0.9885,
+                  "regret": 15.34,
+                  "regret_pct": 1.1464,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 6,
+                  "evaluated_config_ids": [
+                    "bs128_w2_s2"
+                  ],
+                  "iteration_best_metric": 1306.4,
+                  "best_so_far_metric": 1322.72,
+                  "best_so_far_config_id": "bs128_w4_s1",
+                  "normalized_best": 0.9885,
+                  "regret": 15.34,
+                  "regret_pct": 1.1464,
+                  "reached_90pct_best": true
+                }
+              ]
+            },
+            {
+              "condition": "database_seeded",
+              "seed": 1,
+              "order": [
+                "bs128_w4_s2",
+                "bs128_w1_s1",
+                "bs128_w1_s2",
+                "bs128_w2_s1",
+                "bs128_w4_s1",
+                "bs128_w2_s2",
+                "bs128_w8_s1",
+                "bs128_w8_s2"
+              ],
+              "iterations_to_90pct_best": 1,
+              "final_best_metric": 1322.72,
+              "final_best_config_id": "bs128_w4_s1",
+              "final_normalized_best": 0.9885,
+              "final_regret": 15.34,
+              "final_regret_pct": 1.1464,
+              "history": [
+                {
+                  "iteration": 1,
+                  "evaluated_config_ids": [
+                    "bs128_w4_s2"
+                  ],
+                  "iteration_best_metric": 1322.03,
+                  "best_so_far_metric": 1322.03,
+                  "best_so_far_config_id": "bs128_w4_s2",
+                  "normalized_best": 0.988,
+                  "regret": 16.03,
+                  "regret_pct": 1.198,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 2,
+                  "evaluated_config_ids": [
+                    "bs128_w1_s1"
+                  ],
+                  "iteration_best_metric": 1293.89,
+                  "best_so_far_metric": 1322.03,
+                  "best_so_far_config_id": "bs128_w4_s2",
+                  "normalized_best": 0.988,
+                  "regret": 16.03,
+                  "regret_pct": 1.198,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 3,
+                  "evaluated_config_ids": [
+                    "bs128_w1_s2"
+                  ],
+                  "iteration_best_metric": 1281.15,
+                  "best_so_far_metric": 1322.03,
+                  "best_so_far_config_id": "bs128_w4_s2",
+                  "normalized_best": 0.988,
+                  "regret": 16.03,
+                  "regret_pct": 1.198,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 4,
+                  "evaluated_config_ids": [
+                    "bs128_w2_s1"
+                  ],
+                  "iteration_best_metric": 1303.17,
+                  "best_so_far_metric": 1322.03,
+                  "best_so_far_config_id": "bs128_w4_s2",
+                  "normalized_best": 0.988,
+                  "regret": 16.03,
+                  "regret_pct": 1.198,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 5,
+                  "evaluated_config_ids": [
+                    "bs128_w4_s1"
+                  ],
+                  "iteration_best_metric": 1322.72,
+                  "best_so_far_metric": 1322.72,
+                  "best_so_far_config_id": "bs128_w4_s1",
+                  "normalized_best": 0.9885,
+                  "regret": 15.34,
+                  "regret_pct": 1.1464,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 6,
+                  "evaluated_config_ids": [
+                    "bs128_w2_s2"
+                  ],
+                  "iteration_best_metric": 1306.4,
+                  "best_so_far_metric": 1322.72,
+                  "best_so_far_config_id": "bs128_w4_s1",
+                  "normalized_best": 0.9885,
+                  "regret": 15.34,
+                  "regret_pct": 1.1464,
+                  "reached_90pct_best": true
+                }
+              ]
+            },
+            {
+              "condition": "database_seeded",
+              "seed": 2,
+              "order": [
+                "bs128_w4_s2",
+                "bs128_w1_s1",
+                "bs128_w1_s2",
+                "bs128_w2_s1",
+                "bs128_w4_s1",
+                "bs128_w2_s2",
+                "bs128_w8_s1",
+                "bs128_w8_s2"
+              ],
+              "iterations_to_90pct_best": 1,
+              "final_best_metric": 1322.72,
+              "final_best_config_id": "bs128_w4_s1",
+              "final_normalized_best": 0.9885,
+              "final_regret": 15.34,
+              "final_regret_pct": 1.1464,
+              "history": [
+                {
+                  "iteration": 1,
+                  "evaluated_config_ids": [
+                    "bs128_w4_s2"
+                  ],
+                  "iteration_best_metric": 1322.03,
+                  "best_so_far_metric": 1322.03,
+                  "best_so_far_config_id": "bs128_w4_s2",
+                  "normalized_best": 0.988,
+                  "regret": 16.03,
+                  "regret_pct": 1.198,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 2,
+                  "evaluated_config_ids": [
+                    "bs128_w1_s1"
+                  ],
+                  "iteration_best_metric": 1293.89,
+                  "best_so_far_metric": 1322.03,
+                  "best_so_far_config_id": "bs128_w4_s2",
+                  "normalized_best": 0.988,
+                  "regret": 16.03,
+                  "regret_pct": 1.198,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 3,
+                  "evaluated_config_ids": [
+                    "bs128_w1_s2"
+                  ],
+                  "iteration_best_metric": 1281.15,
+                  "best_so_far_metric": 1322.03,
+                  "best_so_far_config_id": "bs128_w4_s2",
+                  "normalized_best": 0.988,
+                  "regret": 16.03,
+                  "regret_pct": 1.198,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 4,
+                  "evaluated_config_ids": [
+                    "bs128_w2_s1"
+                  ],
+                  "iteration_best_metric": 1303.17,
+                  "best_so_far_metric": 1322.03,
+                  "best_so_far_config_id": "bs128_w4_s2",
+                  "normalized_best": 0.988,
+                  "regret": 16.03,
+                  "regret_pct": 1.198,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 5,
+                  "evaluated_config_ids": [
+                    "bs128_w4_s1"
+                  ],
+                  "iteration_best_metric": 1322.72,
+                  "best_so_far_metric": 1322.72,
+                  "best_so_far_config_id": "bs128_w4_s1",
+                  "normalized_best": 0.9885,
+                  "regret": 15.34,
+                  "regret_pct": 1.1464,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 6,
+                  "evaluated_config_ids": [
+                    "bs128_w2_s2"
+                  ],
+                  "iteration_best_metric": 1306.4,
+                  "best_so_far_metric": 1322.72,
+                  "best_so_far_config_id": "bs128_w4_s1",
+                  "normalized_best": 0.9885,
+                  "regret": 15.34,
+                  "regret_pct": 1.1464,
+                  "reached_90pct_best": true
+                }
+              ]
+            }
+          ]
+        },
+        "cost_model_ranking": {
+          "summary": {
+            "runs": 3,
+            "mean_final_metric": 1322.72,
+            "median_final_metric": 1322.72,
+            "mean_final_normalized_best": 0.9885,
+            "median_final_normalized_best": 0.9885,
+            "mean_final_regret": 15.34,
+            "mean_final_regret_pct": 1.1464,
+            "median_iterations_to_90pct_best": 1.0,
+            "success_rate_90pct": 1.0
+          },
+          "runs": [
+            {
+              "condition": "cost_model_ranking",
+              "seed": 0,
+              "order": [
+                "bs128_w4_s1",
+                "bs128_w4_s2",
+                "bs128_w2_s1",
+                "bs128_w1_s1",
+                "bs128_w8_s1",
+                "bs128_w2_s2",
+                "bs128_w8_s2",
+                "bs128_w1_s2"
+              ],
+              "iterations_to_90pct_best": 1,
+              "final_best_metric": 1322.72,
+              "final_best_config_id": "bs128_w4_s1",
+              "final_normalized_best": 0.9885,
+              "final_regret": 15.34,
+              "final_regret_pct": 1.1464,
+              "history": [
+                {
+                  "iteration": 1,
+                  "evaluated_config_ids": [
+                    "bs128_w4_s1"
+                  ],
+                  "iteration_best_metric": 1322.72,
+                  "best_so_far_metric": 1322.72,
+                  "best_so_far_config_id": "bs128_w4_s1",
+                  "normalized_best": 0.9885,
+                  "regret": 15.34,
+                  "regret_pct": 1.1464,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 2,
+                  "evaluated_config_ids": [
+                    "bs128_w4_s2"
+                  ],
+                  "iteration_best_metric": 1322.03,
+                  "best_so_far_metric": 1322.72,
+                  "best_so_far_config_id": "bs128_w4_s1",
+                  "normalized_best": 0.9885,
+                  "regret": 15.34,
+                  "regret_pct": 1.1464,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 3,
+                  "evaluated_config_ids": [
+                    "bs128_w2_s1"
+                  ],
+                  "iteration_best_metric": 1303.17,
+                  "best_so_far_metric": 1322.72,
+                  "best_so_far_config_id": "bs128_w4_s1",
+                  "normalized_best": 0.9885,
+                  "regret": 15.34,
+                  "regret_pct": 1.1464,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 4,
+                  "evaluated_config_ids": [
+                    "bs128_w1_s1"
+                  ],
+                  "iteration_best_metric": 1293.89,
+                  "best_so_far_metric": 1322.72,
+                  "best_so_far_config_id": "bs128_w4_s1",
+                  "normalized_best": 0.9885,
+                  "regret": 15.34,
+                  "regret_pct": 1.1464,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 5,
+                  "evaluated_config_ids": [
+                    "bs128_w8_s1"
+                  ],
+                  "iteration_best_metric": 1321.98,
+                  "best_so_far_metric": 1322.72,
+                  "best_so_far_config_id": "bs128_w4_s1",
+                  "normalized_best": 0.9885,
+                  "regret": 15.34,
+                  "regret_pct": 1.1464,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 6,
+                  "evaluated_config_ids": [
+                    "bs128_w2_s2"
+                  ],
+                  "iteration_best_metric": 1306.4,
+                  "best_so_far_metric": 1322.72,
+                  "best_so_far_config_id": "bs128_w4_s1",
+                  "normalized_best": 0.9885,
+                  "regret": 15.34,
+                  "regret_pct": 1.1464,
+                  "reached_90pct_best": true
+                }
+              ]
+            },
+            {
+              "condition": "cost_model_ranking",
+              "seed": 1,
+              "order": [
+                "bs128_w4_s1",
+                "bs128_w4_s2",
+                "bs128_w2_s1",
+                "bs128_w1_s1",
+                "bs128_w8_s1",
+                "bs128_w2_s2",
+                "bs128_w8_s2",
+                "bs128_w1_s2"
+              ],
+              "iterations_to_90pct_best": 1,
+              "final_best_metric": 1322.72,
+              "final_best_config_id": "bs128_w4_s1",
+              "final_normalized_best": 0.9885,
+              "final_regret": 15.34,
+              "final_regret_pct": 1.1464,
+              "history": [
+                {
+                  "iteration": 1,
+                  "evaluated_config_ids": [
+                    "bs128_w4_s1"
+                  ],
+                  "iteration_best_metric": 1322.72,
+                  "best_so_far_metric": 1322.72,
+                  "best_so_far_config_id": "bs128_w4_s1",
+                  "normalized_best": 0.9885,
+                  "regret": 15.34,
+                  "regret_pct": 1.1464,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 2,
+                  "evaluated_config_ids": [
+                    "bs128_w4_s2"
+                  ],
+                  "iteration_best_metric": 1322.03,
+                  "best_so_far_metric": 1322.72,
+                  "best_so_far_config_id": "bs128_w4_s1",
+                  "normalized_best": 0.9885,
+                  "regret": 15.34,
+                  "regret_pct": 1.1464,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 3,
+                  "evaluated_config_ids": [
+                    "bs128_w2_s1"
+                  ],
+                  "iteration_best_metric": 1303.17,
+                  "best_so_far_metric": 1322.72,
+                  "best_so_far_config_id": "bs128_w4_s1",
+                  "normalized_best": 0.9885,
+                  "regret": 15.34,
+                  "regret_pct": 1.1464,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 4,
+                  "evaluated_config_ids": [
+                    "bs128_w1_s1"
+                  ],
+                  "iteration_best_metric": 1293.89,
+                  "best_so_far_metric": 1322.72,
+                  "best_so_far_config_id": "bs128_w4_s1",
+                  "normalized_best": 0.9885,
+                  "regret": 15.34,
+                  "regret_pct": 1.1464,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 5,
+                  "evaluated_config_ids": [
+                    "bs128_w8_s1"
+                  ],
+                  "iteration_best_metric": 1321.98,
+                  "best_so_far_metric": 1322.72,
+                  "best_so_far_config_id": "bs128_w4_s1",
+                  "normalized_best": 0.9885,
+                  "regret": 15.34,
+                  "regret_pct": 1.1464,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 6,
+                  "evaluated_config_ids": [
+                    "bs128_w2_s2"
+                  ],
+                  "iteration_best_metric": 1306.4,
+                  "best_so_far_metric": 1322.72,
+                  "best_so_far_config_id": "bs128_w4_s1",
+                  "normalized_best": 0.9885,
+                  "regret": 15.34,
+                  "regret_pct": 1.1464,
+                  "reached_90pct_best": true
+                }
+              ]
+            },
+            {
+              "condition": "cost_model_ranking",
+              "seed": 2,
+              "order": [
+                "bs128_w4_s1",
+                "bs128_w4_s2",
+                "bs128_w2_s1",
+                "bs128_w1_s1",
+                "bs128_w8_s1",
+                "bs128_w2_s2",
+                "bs128_w8_s2",
+                "bs128_w1_s2"
+              ],
+              "iterations_to_90pct_best": 1,
+              "final_best_metric": 1322.72,
+              "final_best_config_id": "bs128_w4_s1",
+              "final_normalized_best": 0.9885,
+              "final_regret": 15.34,
+              "final_regret_pct": 1.1464,
+              "history": [
+                {
+                  "iteration": 1,
+                  "evaluated_config_ids": [
+                    "bs128_w4_s1"
+                  ],
+                  "iteration_best_metric": 1322.72,
+                  "best_so_far_metric": 1322.72,
+                  "best_so_far_config_id": "bs128_w4_s1",
+                  "normalized_best": 0.9885,
+                  "regret": 15.34,
+                  "regret_pct": 1.1464,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 2,
+                  "evaluated_config_ids": [
+                    "bs128_w4_s2"
+                  ],
+                  "iteration_best_metric": 1322.03,
+                  "best_so_far_metric": 1322.72,
+                  "best_so_far_config_id": "bs128_w4_s1",
+                  "normalized_best": 0.9885,
+                  "regret": 15.34,
+                  "regret_pct": 1.1464,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 3,
+                  "evaluated_config_ids": [
+                    "bs128_w2_s1"
+                  ],
+                  "iteration_best_metric": 1303.17,
+                  "best_so_far_metric": 1322.72,
+                  "best_so_far_config_id": "bs128_w4_s1",
+                  "normalized_best": 0.9885,
+                  "regret": 15.34,
+                  "regret_pct": 1.1464,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 4,
+                  "evaluated_config_ids": [
+                    "bs128_w1_s1"
+                  ],
+                  "iteration_best_metric": 1293.89,
+                  "best_so_far_metric": 1322.72,
+                  "best_so_far_config_id": "bs128_w4_s1",
+                  "normalized_best": 0.9885,
+                  "regret": 15.34,
+                  "regret_pct": 1.1464,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 5,
+                  "evaluated_config_ids": [
+                    "bs128_w8_s1"
+                  ],
+                  "iteration_best_metric": 1321.98,
+                  "best_so_far_metric": 1322.72,
+                  "best_so_far_config_id": "bs128_w4_s1",
+                  "normalized_best": 0.9885,
+                  "regret": 15.34,
+                  "regret_pct": 1.1464,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 6,
+                  "evaluated_config_ids": [
+                    "bs128_w2_s2"
+                  ],
+                  "iteration_best_metric": 1306.4,
+                  "best_so_far_metric": 1322.72,
+                  "best_so_far_config_id": "bs128_w4_s1",
+                  "normalized_best": 0.9885,
+                  "regret": 15.34,
+                  "regret_pct": 1.1464,
+                  "reached_90pct_best": true
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "rmsnorm:llama_13b:NVIDIA A100-SXM4-80GB": {
+      "operator": "rmsnorm",
+      "bucket": "llama_13b",
+      "hardware": "NVIDIA A100-SXM4-80GB",
+      "shape": {
+        "n_rows": 4096,
+        "hidden_dim": 5120,
+        "bucket": "llama_13b"
+      },
+      "metric_name": "gb_per_s",
+      "candidate_count": 8,
+      "oracle_best_metric": 1409.04,
+      "oracle_best_config_id": "bs128_w8_s1",
+      "shape_size_proxy": 20971520.0,
+      "conditions": {
+        "stateless_random": {
+          "summary": {
+            "runs": 3,
+            "mean_final_metric": 1403.71,
+            "median_final_metric": 1409.04,
+            "mean_final_normalized_best": 0.9962,
+            "median_final_normalized_best": 1.0,
+            "mean_final_regret": 5.33,
+            "mean_final_regret_pct": 0.3783,
+            "median_iterations_to_90pct_best": 2.0,
+            "success_rate_90pct": 1.0
+          },
+          "runs": [
+            {
+              "condition": "stateless_random",
+              "seed": 0,
+              "order": [
+                "bs128_w8_s1",
+                "bs128_w2_s1",
+                "bs128_w8_s2",
+                "bs128_w1_s1",
+                "bs128_w1_s2",
+                "bs128_w4_s2",
+                "bs128_w4_s1",
+                "bs128_w2_s2"
+              ],
+              "iterations_to_90pct_best": 1,
+              "final_best_metric": 1409.04,
+              "final_best_config_id": "bs128_w8_s1",
+              "final_normalized_best": 1.0,
+              "final_regret": 0.0,
+              "final_regret_pct": 0.0,
+              "history": [
+                {
+                  "iteration": 1,
+                  "evaluated_config_ids": [
+                    "bs128_w8_s1"
+                  ],
+                  "iteration_best_metric": 1409.04,
+                  "best_so_far_metric": 1409.04,
+                  "best_so_far_config_id": "bs128_w8_s1",
+                  "normalized_best": 1.0,
+                  "regret": 0.0,
+                  "regret_pct": 0.0,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 2,
+                  "evaluated_config_ids": [
+                    "bs128_w2_s1"
+                  ],
+                  "iteration_best_metric": 1377.51,
+                  "best_so_far_metric": 1409.04,
+                  "best_so_far_config_id": "bs128_w8_s1",
+                  "normalized_best": 1.0,
+                  "regret": 0.0,
+                  "regret_pct": 0.0,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 3,
+                  "evaluated_config_ids": [
+                    "bs128_w8_s2"
+                  ],
+                  "iteration_best_metric": 1393.05,
+                  "best_so_far_metric": 1409.04,
+                  "best_so_far_config_id": "bs128_w8_s1",
+                  "normalized_best": 1.0,
+                  "regret": 0.0,
+                  "regret_pct": 0.0,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 4,
+                  "evaluated_config_ids": [
+                    "bs128_w1_s1"
+                  ],
+                  "iteration_best_metric": 969.57,
+                  "best_so_far_metric": 1409.04,
+                  "best_so_far_config_id": "bs128_w8_s1",
+                  "normalized_best": 1.0,
+                  "regret": 0.0,
+                  "regret_pct": 0.0,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 5,
+                  "evaluated_config_ids": [
+                    "bs128_w1_s2"
+                  ],
+                  "iteration_best_metric": 974.58,
+                  "best_so_far_metric": 1409.04,
+                  "best_so_far_config_id": "bs128_w8_s1",
+                  "normalized_best": 1.0,
+                  "regret": 0.0,
+                  "regret_pct": 0.0,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 6,
+                  "evaluated_config_ids": [
+                    "bs128_w4_s2"
+                  ],
+                  "iteration_best_metric": 1372.44,
+                  "best_so_far_metric": 1409.04,
+                  "best_so_far_config_id": "bs128_w8_s1",
+                  "normalized_best": 1.0,
+                  "regret": 0.0,
+                  "regret_pct": 0.0,
+                  "reached_90pct_best": true
+                }
+              ]
+            },
+            {
+              "condition": "stateless_random",
+              "seed": 1,
+              "order": [
+                "bs128_w1_s2",
+                "bs128_w4_s2",
+                "bs128_w2_s2",
+                "bs128_w1_s1",
+                "bs128_w2_s1",
+                "bs128_w8_s1",
+                "bs128_w8_s2",
+                "bs128_w4_s1"
+              ],
+              "iterations_to_90pct_best": 2,
+              "final_best_metric": 1409.04,
+              "final_best_config_id": "bs128_w8_s1",
+              "final_normalized_best": 1.0,
+              "final_regret": 0.0,
+              "final_regret_pct": 0.0,
+              "history": [
+                {
+                  "iteration": 1,
+                  "evaluated_config_ids": [
+                    "bs128_w1_s2"
+                  ],
+                  "iteration_best_metric": 974.58,
+                  "best_so_far_metric": 974.58,
+                  "best_so_far_config_id": "bs128_w1_s2",
+                  "normalized_best": 0.6917,
+                  "regret": 434.46,
+                  "regret_pct": 30.8338,
+                  "reached_90pct_best": false
+                },
+                {
+                  "iteration": 2,
+                  "evaluated_config_ids": [
+                    "bs128_w4_s2"
+                  ],
+                  "iteration_best_metric": 1372.44,
+                  "best_so_far_metric": 1372.44,
+                  "best_so_far_config_id": "bs128_w4_s2",
+                  "normalized_best": 0.974,
+                  "regret": 36.6,
+                  "regret_pct": 2.5975,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 3,
+                  "evaluated_config_ids": [
+                    "bs128_w2_s2"
+                  ],
+                  "iteration_best_metric": 1377.21,
+                  "best_so_far_metric": 1377.21,
+                  "best_so_far_config_id": "bs128_w2_s2",
+                  "normalized_best": 0.9774,
+                  "regret": 31.83,
+                  "regret_pct": 2.259,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 4,
+                  "evaluated_config_ids": [
+                    "bs128_w1_s1"
+                  ],
+                  "iteration_best_metric": 969.57,
+                  "best_so_far_metric": 1377.21,
+                  "best_so_far_config_id": "bs128_w2_s2",
+                  "normalized_best": 0.9774,
+                  "regret": 31.83,
+                  "regret_pct": 2.259,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 5,
+                  "evaluated_config_ids": [
+                    "bs128_w2_s1"
+                  ],
+                  "iteration_best_metric": 1377.51,
+                  "best_so_far_metric": 1377.51,
+                  "best_so_far_config_id": "bs128_w2_s1",
+                  "normalized_best": 0.9776,
+                  "regret": 31.53,
+                  "regret_pct": 2.2377,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 6,
+                  "evaluated_config_ids": [
+                    "bs128_w8_s1"
+                  ],
+                  "iteration_best_metric": 1409.04,
+                  "best_so_far_metric": 1409.04,
+                  "best_so_far_config_id": "bs128_w8_s1",
+                  "normalized_best": 1.0,
+                  "regret": 0.0,
+                  "regret_pct": 0.0,
+                  "reached_90pct_best": true
+                }
+              ]
+            },
+            {
+              "condition": "stateless_random",
+              "seed": 2,
+              "order": [
+                "bs128_w1_s2",
+                "bs128_w4_s1",
+                "bs128_w2_s1",
+                "bs128_w1_s1",
+                "bs128_w8_s2",
+                "bs128_w4_s2",
+                "bs128_w8_s1",
+                "bs128_w2_s2"
+              ],
+              "iterations_to_90pct_best": 2,
+              "final_best_metric": 1393.05,
+              "final_best_config_id": "bs128_w8_s2",
+              "final_normalized_best": 0.9887,
+              "final_regret": 15.99,
+              "final_regret_pct": 1.1348,
+              "history": [
+                {
+                  "iteration": 1,
+                  "evaluated_config_ids": [
+                    "bs128_w1_s2"
+                  ],
+                  "iteration_best_metric": 974.58,
+                  "best_so_far_metric": 974.58,
+                  "best_so_far_config_id": "bs128_w1_s2",
+                  "normalized_best": 0.6917,
+                  "regret": 434.46,
+                  "regret_pct": 30.8338,
+                  "reached_90pct_best": false
+                },
+                {
+                  "iteration": 2,
+                  "evaluated_config_ids": [
+                    "bs128_w4_s1"
+                  ],
+                  "iteration_best_metric": 1374.87,
+                  "best_so_far_metric": 1374.87,
+                  "best_so_far_config_id": "bs128_w4_s1",
+                  "normalized_best": 0.9757,
+                  "regret": 34.17,
+                  "regret_pct": 2.4251,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 3,
+                  "evaluated_config_ids": [
+                    "bs128_w2_s1"
+                  ],
+                  "iteration_best_metric": 1377.51,
+                  "best_so_far_metric": 1377.51,
+                  "best_so_far_config_id": "bs128_w2_s1",
+                  "normalized_best": 0.9776,
+                  "regret": 31.53,
+                  "regret_pct": 2.2377,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 4,
+                  "evaluated_config_ids": [
+                    "bs128_w1_s1"
+                  ],
+                  "iteration_best_metric": 969.57,
+                  "best_so_far_metric": 1377.51,
+                  "best_so_far_config_id": "bs128_w2_s1",
+                  "normalized_best": 0.9776,
+                  "regret": 31.53,
+                  "regret_pct": 2.2377,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 5,
+                  "evaluated_config_ids": [
+                    "bs128_w8_s2"
+                  ],
+                  "iteration_best_metric": 1393.05,
+                  "best_so_far_metric": 1393.05,
+                  "best_so_far_config_id": "bs128_w8_s2",
+                  "normalized_best": 0.9887,
+                  "regret": 15.99,
+                  "regret_pct": 1.1348,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 6,
+                  "evaluated_config_ids": [
+                    "bs128_w4_s2"
+                  ],
+                  "iteration_best_metric": 1372.44,
+                  "best_so_far_metric": 1393.05,
+                  "best_so_far_config_id": "bs128_w8_s2",
+                  "normalized_best": 0.9887,
+                  "regret": 15.99,
+                  "regret_pct": 1.1348,
+                  "reached_90pct_best": true
+                }
+              ]
+            }
+          ]
+        },
+        "database_seeded": {
+          "summary": {
+            "runs": 3,
+            "mean_final_metric": 1377.51,
+            "median_final_metric": 1377.51,
+            "mean_final_normalized_best": 0.9776,
+            "median_final_normalized_best": 0.9776,
+            "mean_final_regret": 31.53,
+            "mean_final_regret_pct": 2.2377,
+            "median_iterations_to_90pct_best": 2.0,
+            "success_rate_90pct": 1.0
+          },
+          "runs": [
+            {
+              "condition": "database_seeded",
+              "seed": 0,
+              "order": [
+                "bs128_w1_s1",
+                "bs128_w2_s2",
+                "bs128_w2_s1",
+                "bs128_w1_s2",
+                "bs128_w4_s1",
+                "bs128_w4_s2",
+                "bs128_w8_s1",
+                "bs128_w8_s2"
+              ],
+              "iterations_to_90pct_best": 2,
+              "final_best_metric": 1377.51,
+              "final_best_config_id": "bs128_w2_s1",
+              "final_normalized_best": 0.9776,
+              "final_regret": 31.53,
+              "final_regret_pct": 2.2377,
+              "history": [
+                {
+                  "iteration": 1,
+                  "evaluated_config_ids": [
+                    "bs128_w1_s1"
+                  ],
+                  "iteration_best_metric": 969.57,
+                  "best_so_far_metric": 969.57,
+                  "best_so_far_config_id": "bs128_w1_s1",
+                  "normalized_best": 0.6881,
+                  "regret": 439.47,
+                  "regret_pct": 31.1893,
+                  "reached_90pct_best": false
+                },
+                {
+                  "iteration": 2,
+                  "evaluated_config_ids": [
+                    "bs128_w2_s2"
+                  ],
+                  "iteration_best_metric": 1377.21,
+                  "best_so_far_metric": 1377.21,
+                  "best_so_far_config_id": "bs128_w2_s2",
+                  "normalized_best": 0.9774,
+                  "regret": 31.83,
+                  "regret_pct": 2.259,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 3,
+                  "evaluated_config_ids": [
+                    "bs128_w2_s1"
+                  ],
+                  "iteration_best_metric": 1377.51,
+                  "best_so_far_metric": 1377.51,
+                  "best_so_far_config_id": "bs128_w2_s1",
+                  "normalized_best": 0.9776,
+                  "regret": 31.53,
+                  "regret_pct": 2.2377,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 4,
+                  "evaluated_config_ids": [
+                    "bs128_w1_s2"
+                  ],
+                  "iteration_best_metric": 974.58,
+                  "best_so_far_metric": 1377.51,
+                  "best_so_far_config_id": "bs128_w2_s1",
+                  "normalized_best": 0.9776,
+                  "regret": 31.53,
+                  "regret_pct": 2.2377,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 5,
+                  "evaluated_config_ids": [
+                    "bs128_w4_s1"
+                  ],
+                  "iteration_best_metric": 1374.87,
+                  "best_so_far_metric": 1377.51,
+                  "best_so_far_config_id": "bs128_w2_s1",
+                  "normalized_best": 0.9776,
+                  "regret": 31.53,
+                  "regret_pct": 2.2377,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 6,
+                  "evaluated_config_ids": [
+                    "bs128_w4_s2"
+                  ],
+                  "iteration_best_metric": 1372.44,
+                  "best_so_far_metric": 1377.51,
+                  "best_so_far_config_id": "bs128_w2_s1",
+                  "normalized_best": 0.9776,
+                  "regret": 31.53,
+                  "regret_pct": 2.2377,
+                  "reached_90pct_best": true
+                }
+              ]
+            },
+            {
+              "condition": "database_seeded",
+              "seed": 1,
+              "order": [
+                "bs128_w1_s1",
+                "bs128_w2_s2",
+                "bs128_w2_s1",
+                "bs128_w1_s2",
+                "bs128_w4_s1",
+                "bs128_w4_s2",
+                "bs128_w8_s1",
+                "bs128_w8_s2"
+              ],
+              "iterations_to_90pct_best": 2,
+              "final_best_metric": 1377.51,
+              "final_best_config_id": "bs128_w2_s1",
+              "final_normalized_best": 0.9776,
+              "final_regret": 31.53,
+              "final_regret_pct": 2.2377,
+              "history": [
+                {
+                  "iteration": 1,
+                  "evaluated_config_ids": [
+                    "bs128_w1_s1"
+                  ],
+                  "iteration_best_metric": 969.57,
+                  "best_so_far_metric": 969.57,
+                  "best_so_far_config_id": "bs128_w1_s1",
+                  "normalized_best": 0.6881,
+                  "regret": 439.47,
+                  "regret_pct": 31.1893,
+                  "reached_90pct_best": false
+                },
+                {
+                  "iteration": 2,
+                  "evaluated_config_ids": [
+                    "bs128_w2_s2"
+                  ],
+                  "iteration_best_metric": 1377.21,
+                  "best_so_far_metric": 1377.21,
+                  "best_so_far_config_id": "bs128_w2_s2",
+                  "normalized_best": 0.9774,
+                  "regret": 31.83,
+                  "regret_pct": 2.259,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 3,
+                  "evaluated_config_ids": [
+                    "bs128_w2_s1"
+                  ],
+                  "iteration_best_metric": 1377.51,
+                  "best_so_far_metric": 1377.51,
+                  "best_so_far_config_id": "bs128_w2_s1",
+                  "normalized_best": 0.9776,
+                  "regret": 31.53,
+                  "regret_pct": 2.2377,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 4,
+                  "evaluated_config_ids": [
+                    "bs128_w1_s2"
+                  ],
+                  "iteration_best_metric": 974.58,
+                  "best_so_far_metric": 1377.51,
+                  "best_so_far_config_id": "bs128_w2_s1",
+                  "normalized_best": 0.9776,
+                  "regret": 31.53,
+                  "regret_pct": 2.2377,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 5,
+                  "evaluated_config_ids": [
+                    "bs128_w4_s1"
+                  ],
+                  "iteration_best_metric": 1374.87,
+                  "best_so_far_metric": 1377.51,
+                  "best_so_far_config_id": "bs128_w2_s1",
+                  "normalized_best": 0.9776,
+                  "regret": 31.53,
+                  "regret_pct": 2.2377,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 6,
+                  "evaluated_config_ids": [
+                    "bs128_w4_s2"
+                  ],
+                  "iteration_best_metric": 1372.44,
+                  "best_so_far_metric": 1377.51,
+                  "best_so_far_config_id": "bs128_w2_s1",
+                  "normalized_best": 0.9776,
+                  "regret": 31.53,
+                  "regret_pct": 2.2377,
+                  "reached_90pct_best": true
+                }
+              ]
+            },
+            {
+              "condition": "database_seeded",
+              "seed": 2,
+              "order": [
+                "bs128_w1_s1",
+                "bs128_w2_s2",
+                "bs128_w2_s1",
+                "bs128_w1_s2",
+                "bs128_w4_s1",
+                "bs128_w4_s2",
+                "bs128_w8_s1",
+                "bs128_w8_s2"
+              ],
+              "iterations_to_90pct_best": 2,
+              "final_best_metric": 1377.51,
+              "final_best_config_id": "bs128_w2_s1",
+              "final_normalized_best": 0.9776,
+              "final_regret": 31.53,
+              "final_regret_pct": 2.2377,
+              "history": [
+                {
+                  "iteration": 1,
+                  "evaluated_config_ids": [
+                    "bs128_w1_s1"
+                  ],
+                  "iteration_best_metric": 969.57,
+                  "best_so_far_metric": 969.57,
+                  "best_so_far_config_id": "bs128_w1_s1",
+                  "normalized_best": 0.6881,
+                  "regret": 439.47,
+                  "regret_pct": 31.1893,
+                  "reached_90pct_best": false
+                },
+                {
+                  "iteration": 2,
+                  "evaluated_config_ids": [
+                    "bs128_w2_s2"
+                  ],
+                  "iteration_best_metric": 1377.21,
+                  "best_so_far_metric": 1377.21,
+                  "best_so_far_config_id": "bs128_w2_s2",
+                  "normalized_best": 0.9774,
+                  "regret": 31.83,
+                  "regret_pct": 2.259,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 3,
+                  "evaluated_config_ids": [
+                    "bs128_w2_s1"
+                  ],
+                  "iteration_best_metric": 1377.51,
+                  "best_so_far_metric": 1377.51,
+                  "best_so_far_config_id": "bs128_w2_s1",
+                  "normalized_best": 0.9776,
+                  "regret": 31.53,
+                  "regret_pct": 2.2377,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 4,
+                  "evaluated_config_ids": [
+                    "bs128_w1_s2"
+                  ],
+                  "iteration_best_metric": 974.58,
+                  "best_so_far_metric": 1377.51,
+                  "best_so_far_config_id": "bs128_w2_s1",
+                  "normalized_best": 0.9776,
+                  "regret": 31.53,
+                  "regret_pct": 2.2377,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 5,
+                  "evaluated_config_ids": [
+                    "bs128_w4_s1"
+                  ],
+                  "iteration_best_metric": 1374.87,
+                  "best_so_far_metric": 1377.51,
+                  "best_so_far_config_id": "bs128_w2_s1",
+                  "normalized_best": 0.9776,
+                  "regret": 31.53,
+                  "regret_pct": 2.2377,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 6,
+                  "evaluated_config_ids": [
+                    "bs128_w4_s2"
+                  ],
+                  "iteration_best_metric": 1372.44,
+                  "best_so_far_metric": 1377.51,
+                  "best_so_far_config_id": "bs128_w2_s1",
+                  "normalized_best": 0.9776,
+                  "regret": 31.53,
+                  "regret_pct": 2.2377,
+                  "reached_90pct_best": true
+                }
+              ]
+            }
+          ]
+        },
+        "cost_model_ranking": {
+          "summary": {
+            "runs": 3,
+            "mean_final_metric": 1409.04,
+            "median_final_metric": 1409.04,
+            "mean_final_normalized_best": 1.0,
+            "median_final_normalized_best": 1.0,
+            "mean_final_regret": 0.0,
+            "mean_final_regret_pct": 0.0,
+            "median_iterations_to_90pct_best": 1.0,
+            "success_rate_90pct": 1.0
+          },
+          "runs": [
+            {
+              "condition": "cost_model_ranking",
+              "seed": 0,
+              "order": [
+                "bs128_w8_s1",
+                "bs128_w8_s2",
+                "bs128_w4_s1",
+                "bs128_w4_s2",
+                "bs128_w2_s2",
+                "bs128_w1_s1",
+                "bs128_w2_s1",
+                "bs128_w1_s2"
+              ],
+              "iterations_to_90pct_best": 1,
+              "final_best_metric": 1409.04,
+              "final_best_config_id": "bs128_w8_s1",
+              "final_normalized_best": 1.0,
+              "final_regret": 0.0,
+              "final_regret_pct": 0.0,
+              "history": [
+                {
+                  "iteration": 1,
+                  "evaluated_config_ids": [
+                    "bs128_w8_s1"
+                  ],
+                  "iteration_best_metric": 1409.04,
+                  "best_so_far_metric": 1409.04,
+                  "best_so_far_config_id": "bs128_w8_s1",
+                  "normalized_best": 1.0,
+                  "regret": 0.0,
+                  "regret_pct": 0.0,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 2,
+                  "evaluated_config_ids": [
+                    "bs128_w8_s2"
+                  ],
+                  "iteration_best_metric": 1393.05,
+                  "best_so_far_metric": 1409.04,
+                  "best_so_far_config_id": "bs128_w8_s1",
+                  "normalized_best": 1.0,
+                  "regret": 0.0,
+                  "regret_pct": 0.0,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 3,
+                  "evaluated_config_ids": [
+                    "bs128_w4_s1"
+                  ],
+                  "iteration_best_metric": 1374.87,
+                  "best_so_far_metric": 1409.04,
+                  "best_so_far_config_id": "bs128_w8_s1",
+                  "normalized_best": 1.0,
+                  "regret": 0.0,
+                  "regret_pct": 0.0,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 4,
+                  "evaluated_config_ids": [
+                    "bs128_w4_s2"
+                  ],
+                  "iteration_best_metric": 1372.44,
+                  "best_so_far_metric": 1409.04,
+                  "best_so_far_config_id": "bs128_w8_s1",
+                  "normalized_best": 1.0,
+                  "regret": 0.0,
+                  "regret_pct": 0.0,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 5,
+                  "evaluated_config_ids": [
+                    "bs128_w2_s2"
+                  ],
+                  "iteration_best_metric": 1377.21,
+                  "best_so_far_metric": 1409.04,
+                  "best_so_far_config_id": "bs128_w8_s1",
+                  "normalized_best": 1.0,
+                  "regret": 0.0,
+                  "regret_pct": 0.0,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 6,
+                  "evaluated_config_ids": [
+                    "bs128_w1_s1"
+                  ],
+                  "iteration_best_metric": 969.57,
+                  "best_so_far_metric": 1409.04,
+                  "best_so_far_config_id": "bs128_w8_s1",
+                  "normalized_best": 1.0,
+                  "regret": 0.0,
+                  "regret_pct": 0.0,
+                  "reached_90pct_best": true
+                }
+              ]
+            },
+            {
+              "condition": "cost_model_ranking",
+              "seed": 1,
+              "order": [
+                "bs128_w8_s1",
+                "bs128_w8_s2",
+                "bs128_w4_s1",
+                "bs128_w4_s2",
+                "bs128_w2_s2",
+                "bs128_w1_s1",
+                "bs128_w2_s1",
+                "bs128_w1_s2"
+              ],
+              "iterations_to_90pct_best": 1,
+              "final_best_metric": 1409.04,
+              "final_best_config_id": "bs128_w8_s1",
+              "final_normalized_best": 1.0,
+              "final_regret": 0.0,
+              "final_regret_pct": 0.0,
+              "history": [
+                {
+                  "iteration": 1,
+                  "evaluated_config_ids": [
+                    "bs128_w8_s1"
+                  ],
+                  "iteration_best_metric": 1409.04,
+                  "best_so_far_metric": 1409.04,
+                  "best_so_far_config_id": "bs128_w8_s1",
+                  "normalized_best": 1.0,
+                  "regret": 0.0,
+                  "regret_pct": 0.0,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 2,
+                  "evaluated_config_ids": [
+                    "bs128_w8_s2"
+                  ],
+                  "iteration_best_metric": 1393.05,
+                  "best_so_far_metric": 1409.04,
+                  "best_so_far_config_id": "bs128_w8_s1",
+                  "normalized_best": 1.0,
+                  "regret": 0.0,
+                  "regret_pct": 0.0,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 3,
+                  "evaluated_config_ids": [
+                    "bs128_w4_s1"
+                  ],
+                  "iteration_best_metric": 1374.87,
+                  "best_so_far_metric": 1409.04,
+                  "best_so_far_config_id": "bs128_w8_s1",
+                  "normalized_best": 1.0,
+                  "regret": 0.0,
+                  "regret_pct": 0.0,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 4,
+                  "evaluated_config_ids": [
+                    "bs128_w4_s2"
+                  ],
+                  "iteration_best_metric": 1372.44,
+                  "best_so_far_metric": 1409.04,
+                  "best_so_far_config_id": "bs128_w8_s1",
+                  "normalized_best": 1.0,
+                  "regret": 0.0,
+                  "regret_pct": 0.0,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 5,
+                  "evaluated_config_ids": [
+                    "bs128_w2_s2"
+                  ],
+                  "iteration_best_metric": 1377.21,
+                  "best_so_far_metric": 1409.04,
+                  "best_so_far_config_id": "bs128_w8_s1",
+                  "normalized_best": 1.0,
+                  "regret": 0.0,
+                  "regret_pct": 0.0,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 6,
+                  "evaluated_config_ids": [
+                    "bs128_w1_s1"
+                  ],
+                  "iteration_best_metric": 969.57,
+                  "best_so_far_metric": 1409.04,
+                  "best_so_far_config_id": "bs128_w8_s1",
+                  "normalized_best": 1.0,
+                  "regret": 0.0,
+                  "regret_pct": 0.0,
+                  "reached_90pct_best": true
+                }
+              ]
+            },
+            {
+              "condition": "cost_model_ranking",
+              "seed": 2,
+              "order": [
+                "bs128_w8_s1",
+                "bs128_w8_s2",
+                "bs128_w4_s1",
+                "bs128_w4_s2",
+                "bs128_w2_s2",
+                "bs128_w1_s1",
+                "bs128_w2_s1",
+                "bs128_w1_s2"
+              ],
+              "iterations_to_90pct_best": 1,
+              "final_best_metric": 1409.04,
+              "final_best_config_id": "bs128_w8_s1",
+              "final_normalized_best": 1.0,
+              "final_regret": 0.0,
+              "final_regret_pct": 0.0,
+              "history": [
+                {
+                  "iteration": 1,
+                  "evaluated_config_ids": [
+                    "bs128_w8_s1"
+                  ],
+                  "iteration_best_metric": 1409.04,
+                  "best_so_far_metric": 1409.04,
+                  "best_so_far_config_id": "bs128_w8_s1",
+                  "normalized_best": 1.0,
+                  "regret": 0.0,
+                  "regret_pct": 0.0,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 2,
+                  "evaluated_config_ids": [
+                    "bs128_w8_s2"
+                  ],
+                  "iteration_best_metric": 1393.05,
+                  "best_so_far_metric": 1409.04,
+                  "best_so_far_config_id": "bs128_w8_s1",
+                  "normalized_best": 1.0,
+                  "regret": 0.0,
+                  "regret_pct": 0.0,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 3,
+                  "evaluated_config_ids": [
+                    "bs128_w4_s1"
+                  ],
+                  "iteration_best_metric": 1374.87,
+                  "best_so_far_metric": 1409.04,
+                  "best_so_far_config_id": "bs128_w8_s1",
+                  "normalized_best": 1.0,
+                  "regret": 0.0,
+                  "regret_pct": 0.0,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 4,
+                  "evaluated_config_ids": [
+                    "bs128_w4_s2"
+                  ],
+                  "iteration_best_metric": 1372.44,
+                  "best_so_far_metric": 1409.04,
+                  "best_so_far_config_id": "bs128_w8_s1",
+                  "normalized_best": 1.0,
+                  "regret": 0.0,
+                  "regret_pct": 0.0,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 5,
+                  "evaluated_config_ids": [
+                    "bs128_w2_s2"
+                  ],
+                  "iteration_best_metric": 1377.21,
+                  "best_so_far_metric": 1409.04,
+                  "best_so_far_config_id": "bs128_w8_s1",
+                  "normalized_best": 1.0,
+                  "regret": 0.0,
+                  "regret_pct": 0.0,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 6,
+                  "evaluated_config_ids": [
+                    "bs128_w1_s1"
+                  ],
+                  "iteration_best_metric": 969.57,
+                  "best_so_far_metric": 1409.04,
+                  "best_so_far_config_id": "bs128_w8_s1",
+                  "normalized_best": 1.0,
+                  "regret": 0.0,
+                  "regret_pct": 0.0,
+                  "reached_90pct_best": true
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "softmax:vocab_small:NVIDIA A100-SXM4-80GB": {
+      "operator": "softmax",
+      "bucket": "vocab_small",
+      "hardware": "NVIDIA A100-SXM4-80GB",
+      "shape": {
+        "n_rows": 1024,
+        "n_cols": 32000,
+        "bucket": "vocab_small"
+      },
+      "metric_name": "gb_per_s",
+      "candidate_count": 9,
+      "oracle_best_metric": 1372.55,
+      "oracle_best_config_id": "bs128_w16_s1",
+      "shape_size_proxy": 32768000.0,
+      "conditions": {
+        "stateless_random": {
+          "summary": {
+            "runs": 3,
+            "mean_final_metric": 1199.23,
+            "median_final_metric": 1372.55,
+            "mean_final_normalized_best": 0.8737,
+            "median_final_normalized_best": 1.0,
+            "mean_final_regret": 173.32,
+            "mean_final_regret_pct": 12.6276,
+            "median_iterations_to_90pct_best": 4.5,
+            "success_rate_90pct": 0.6667
+          },
+          "runs": [
+            {
+              "condition": "stateless_random",
+              "seed": 0,
+              "order": [
+                "bs128_w4_s2",
+                "bs128_w2_s1",
+                "bs128_w1_s1",
+                "bs128_w2_s2",
+                "bs128_w4_s1",
+                "bs128_w1_s2",
+                "bs128_w16_s1",
+                "bs128_w8_s1",
+                "bs128_w8_s2"
+              ],
+              "iterations_to_90pct_best": null,
+              "final_best_metric": 852.59,
+              "final_best_config_id": "bs128_w4_s2",
+              "final_normalized_best": 0.6212,
+              "final_regret": 519.96,
+              "final_regret_pct": 37.8828,
+              "history": [
+                {
+                  "iteration": 1,
+                  "evaluated_config_ids": [
+                    "bs128_w4_s2"
+                  ],
+                  "iteration_best_metric": 852.59,
+                  "best_so_far_metric": 852.59,
+                  "best_so_far_config_id": "bs128_w4_s2",
+                  "normalized_best": 0.6212,
+                  "regret": 519.96,
+                  "regret_pct": 37.8828,
+                  "reached_90pct_best": false
+                },
+                {
+                  "iteration": 2,
+                  "evaluated_config_ids": [
+                    "bs128_w2_s1"
+                  ],
+                  "iteration_best_metric": 205.8,
+                  "best_so_far_metric": 852.59,
+                  "best_so_far_config_id": "bs128_w4_s2",
+                  "normalized_best": 0.6212,
+                  "regret": 519.96,
+                  "regret_pct": 37.8828,
+                  "reached_90pct_best": false
+                },
+                {
+                  "iteration": 3,
+                  "evaluated_config_ids": [
+                    "bs128_w1_s1"
+                  ],
+                  "iteration_best_metric": 224.55,
+                  "best_so_far_metric": 852.59,
+                  "best_so_far_config_id": "bs128_w4_s2",
+                  "normalized_best": 0.6212,
+                  "regret": 519.96,
+                  "regret_pct": 37.8828,
+                  "reached_90pct_best": false
+                },
+                {
+                  "iteration": 4,
+                  "evaluated_config_ids": [
+                    "bs128_w2_s2"
+                  ],
+                  "iteration_best_metric": 210.2,
+                  "best_so_far_metric": 852.59,
+                  "best_so_far_config_id": "bs128_w4_s2",
+                  "normalized_best": 0.6212,
+                  "regret": 519.96,
+                  "regret_pct": 37.8828,
+                  "reached_90pct_best": false
+                },
+                {
+                  "iteration": 5,
+                  "evaluated_config_ids": [
+                    "bs128_w4_s1"
+                  ],
+                  "iteration_best_metric": 852.49,
+                  "best_so_far_metric": 852.59,
+                  "best_so_far_config_id": "bs128_w4_s2",
+                  "normalized_best": 0.6212,
+                  "regret": 519.96,
+                  "regret_pct": 37.8828,
+                  "reached_90pct_best": false
+                },
+                {
+                  "iteration": 6,
+                  "evaluated_config_ids": [
+                    "bs128_w1_s2"
+                  ],
+                  "iteration_best_metric": 224.96,
+                  "best_so_far_metric": 852.59,
+                  "best_so_far_config_id": "bs128_w4_s2",
+                  "normalized_best": 0.6212,
+                  "regret": 519.96,
+                  "regret_pct": 37.8828,
+                  "reached_90pct_best": false
+                }
+              ]
+            },
+            {
+              "condition": "stateless_random",
+              "seed": 1,
+              "order": [
+                "bs128_w2_s2",
+                "bs128_w8_s1",
+                "bs128_w1_s2",
+                "bs128_w8_s2",
+                "bs128_w4_s2",
+                "bs128_w16_s1",
+                "bs128_w1_s1",
+                "bs128_w2_s1",
+                "bs128_w4_s1"
+              ],
+              "iterations_to_90pct_best": 6,
+              "final_best_metric": 1372.55,
+              "final_best_config_id": "bs128_w16_s1",
+              "final_normalized_best": 1.0,
+              "final_regret": 0.0,
+              "final_regret_pct": 0.0,
+              "history": [
+                {
+                  "iteration": 1,
+                  "evaluated_config_ids": [
+                    "bs128_w2_s2"
+                  ],
+                  "iteration_best_metric": 210.2,
+                  "best_so_far_metric": 210.2,
+                  "best_so_far_config_id": "bs128_w2_s2",
+                  "normalized_best": 0.1531,
+                  "regret": 1162.35,
+                  "regret_pct": 84.6854,
+                  "reached_90pct_best": false
+                },
+                {
+                  "iteration": 2,
+                  "evaluated_config_ids": [
+                    "bs128_w8_s1"
+                  ],
+                  "iteration_best_metric": 1201.54,
+                  "best_so_far_metric": 1201.54,
+                  "best_so_far_config_id": "bs128_w8_s1",
+                  "normalized_best": 0.8754,
+                  "regret": 171.01,
+                  "regret_pct": 12.4593,
+                  "reached_90pct_best": false
+                },
+                {
+                  "iteration": 3,
+                  "evaluated_config_ids": [
+                    "bs128_w1_s2"
+                  ],
+                  "iteration_best_metric": 224.96,
+                  "best_so_far_metric": 1201.54,
+                  "best_so_far_config_id": "bs128_w8_s1",
+                  "normalized_best": 0.8754,
+                  "regret": 171.01,
+                  "regret_pct": 12.4593,
+                  "reached_90pct_best": false
+                },
+                {
+                  "iteration": 4,
+                  "evaluated_config_ids": [
+                    "bs128_w8_s2"
+                  ],
+                  "iteration_best_metric": 1193.75,
+                  "best_so_far_metric": 1201.54,
+                  "best_so_far_config_id": "bs128_w8_s1",
+                  "normalized_best": 0.8754,
+                  "regret": 171.01,
+                  "regret_pct": 12.4593,
+                  "reached_90pct_best": false
+                },
+                {
+                  "iteration": 5,
+                  "evaluated_config_ids": [
+                    "bs128_w4_s2"
+                  ],
+                  "iteration_best_metric": 852.59,
+                  "best_so_far_metric": 1201.54,
+                  "best_so_far_config_id": "bs128_w8_s1",
+                  "normalized_best": 0.8754,
+                  "regret": 171.01,
+                  "regret_pct": 12.4593,
+                  "reached_90pct_best": false
+                },
+                {
+                  "iteration": 6,
+                  "evaluated_config_ids": [
+                    "bs128_w16_s1"
+                  ],
+                  "iteration_best_metric": 1372.55,
+                  "best_so_far_metric": 1372.55,
+                  "best_so_far_config_id": "bs128_w16_s1",
+                  "normalized_best": 1.0,
+                  "regret": 0.0,
+                  "regret_pct": 0.0,
+                  "reached_90pct_best": true
+                }
+              ]
+            },
+            {
+              "condition": "stateless_random",
+              "seed": 2,
+              "order": [
+                "bs128_w8_s1",
+                "bs128_w2_s1",
+                "bs128_w16_s1",
+                "bs128_w1_s2",
+                "bs128_w2_s2",
+                "bs128_w4_s1",
+                "bs128_w4_s2",
+                "bs128_w1_s1",
+                "bs128_w8_s2"
+              ],
+              "iterations_to_90pct_best": 3,
+              "final_best_metric": 1372.55,
+              "final_best_config_id": "bs128_w16_s1",
+              "final_normalized_best": 1.0,
+              "final_regret": 0.0,
+              "final_regret_pct": 0.0,
+              "history": [
+                {
+                  "iteration": 1,
+                  "evaluated_config_ids": [
+                    "bs128_w8_s1"
+                  ],
+                  "iteration_best_metric": 1201.54,
+                  "best_so_far_metric": 1201.54,
+                  "best_so_far_config_id": "bs128_w8_s1",
+                  "normalized_best": 0.8754,
+                  "regret": 171.01,
+                  "regret_pct": 12.4593,
+                  "reached_90pct_best": false
+                },
+                {
+                  "iteration": 2,
+                  "evaluated_config_ids": [
+                    "bs128_w2_s1"
+                  ],
+                  "iteration_best_metric": 205.8,
+                  "best_so_far_metric": 1201.54,
+                  "best_so_far_config_id": "bs128_w8_s1",
+                  "normalized_best": 0.8754,
+                  "regret": 171.01,
+                  "regret_pct": 12.4593,
+                  "reached_90pct_best": false
+                },
+                {
+                  "iteration": 3,
+                  "evaluated_config_ids": [
+                    "bs128_w16_s1"
+                  ],
+                  "iteration_best_metric": 1372.55,
+                  "best_so_far_metric": 1372.55,
+                  "best_so_far_config_id": "bs128_w16_s1",
+                  "normalized_best": 1.0,
+                  "regret": 0.0,
+                  "regret_pct": 0.0,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 4,
+                  "evaluated_config_ids": [
+                    "bs128_w1_s2"
+                  ],
+                  "iteration_best_metric": 224.96,
+                  "best_so_far_metric": 1372.55,
+                  "best_so_far_config_id": "bs128_w16_s1",
+                  "normalized_best": 1.0,
+                  "regret": 0.0,
+                  "regret_pct": 0.0,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 5,
+                  "evaluated_config_ids": [
+                    "bs128_w2_s2"
+                  ],
+                  "iteration_best_metric": 210.2,
+                  "best_so_far_metric": 1372.55,
+                  "best_so_far_config_id": "bs128_w16_s1",
+                  "normalized_best": 1.0,
+                  "regret": 0.0,
+                  "regret_pct": 0.0,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 6,
+                  "evaluated_config_ids": [
+                    "bs128_w4_s1"
+                  ],
+                  "iteration_best_metric": 852.49,
+                  "best_so_far_metric": 1372.55,
+                  "best_so_far_config_id": "bs128_w16_s1",
+                  "normalized_best": 1.0,
+                  "regret": 0.0,
+                  "regret_pct": 0.0,
+                  "reached_90pct_best": true
+                }
+              ]
+            }
+          ]
+        },
+        "database_seeded": {
+          "summary": {
+            "runs": 3,
+            "mean_final_metric": 1201.54,
+            "median_final_metric": 1201.54,
+            "mean_final_normalized_best": 0.8754,
+            "median_final_normalized_best": 0.8754,
+            "mean_final_regret": 171.01,
+            "mean_final_regret_pct": 12.4593,
+            "median_iterations_to_90pct_best": null,
+            "success_rate_90pct": 0.0
+          },
+          "runs": [
+            {
+              "condition": "database_seeded",
+              "seed": 0,
+              "order": [
+                "bs128_w4_s1",
+                "bs128_w2_s1",
+                "bs128_w4_s2",
+                "bs128_w8_s1",
+                "bs128_w2_s2",
+                "bs128_w8_s2",
+                "bs128_w1_s1",
+                "bs128_w1_s2",
+                "bs128_w16_s1"
+              ],
+              "iterations_to_90pct_best": null,
+              "final_best_metric": 1201.54,
+              "final_best_config_id": "bs128_w8_s1",
+              "final_normalized_best": 0.8754,
+              "final_regret": 171.01,
+              "final_regret_pct": 12.4593,
+              "history": [
+                {
+                  "iteration": 1,
+                  "evaluated_config_ids": [
+                    "bs128_w4_s1"
+                  ],
+                  "iteration_best_metric": 852.49,
+                  "best_so_far_metric": 852.49,
+                  "best_so_far_config_id": "bs128_w4_s1",
+                  "normalized_best": 0.6211,
+                  "regret": 520.06,
+                  "regret_pct": 37.8901,
+                  "reached_90pct_best": false
+                },
+                {
+                  "iteration": 2,
+                  "evaluated_config_ids": [
+                    "bs128_w2_s1"
+                  ],
+                  "iteration_best_metric": 205.8,
+                  "best_so_far_metric": 852.49,
+                  "best_so_far_config_id": "bs128_w4_s1",
+                  "normalized_best": 0.6211,
+                  "regret": 520.06,
+                  "regret_pct": 37.8901,
+                  "reached_90pct_best": false
+                },
+                {
+                  "iteration": 3,
+                  "evaluated_config_ids": [
+                    "bs128_w4_s2"
+                  ],
+                  "iteration_best_metric": 852.59,
+                  "best_so_far_metric": 852.59,
+                  "best_so_far_config_id": "bs128_w4_s2",
+                  "normalized_best": 0.6212,
+                  "regret": 519.96,
+                  "regret_pct": 37.8828,
+                  "reached_90pct_best": false
+                },
+                {
+                  "iteration": 4,
+                  "evaluated_config_ids": [
+                    "bs128_w8_s1"
+                  ],
+                  "iteration_best_metric": 1201.54,
+                  "best_so_far_metric": 1201.54,
+                  "best_so_far_config_id": "bs128_w8_s1",
+                  "normalized_best": 0.8754,
+                  "regret": 171.01,
+                  "regret_pct": 12.4593,
+                  "reached_90pct_best": false
+                },
+                {
+                  "iteration": 5,
+                  "evaluated_config_ids": [
+                    "bs128_w2_s2"
+                  ],
+                  "iteration_best_metric": 210.2,
+                  "best_so_far_metric": 1201.54,
+                  "best_so_far_config_id": "bs128_w8_s1",
+                  "normalized_best": 0.8754,
+                  "regret": 171.01,
+                  "regret_pct": 12.4593,
+                  "reached_90pct_best": false
+                },
+                {
+                  "iteration": 6,
+                  "evaluated_config_ids": [
+                    "bs128_w8_s2"
+                  ],
+                  "iteration_best_metric": 1193.75,
+                  "best_so_far_metric": 1201.54,
+                  "best_so_far_config_id": "bs128_w8_s1",
+                  "normalized_best": 0.8754,
+                  "regret": 171.01,
+                  "regret_pct": 12.4593,
+                  "reached_90pct_best": false
+                }
+              ]
+            },
+            {
+              "condition": "database_seeded",
+              "seed": 1,
+              "order": [
+                "bs128_w4_s1",
+                "bs128_w2_s1",
+                "bs128_w4_s2",
+                "bs128_w8_s1",
+                "bs128_w2_s2",
+                "bs128_w8_s2",
+                "bs128_w1_s1",
+                "bs128_w1_s2",
+                "bs128_w16_s1"
+              ],
+              "iterations_to_90pct_best": null,
+              "final_best_metric": 1201.54,
+              "final_best_config_id": "bs128_w8_s1",
+              "final_normalized_best": 0.8754,
+              "final_regret": 171.01,
+              "final_regret_pct": 12.4593,
+              "history": [
+                {
+                  "iteration": 1,
+                  "evaluated_config_ids": [
+                    "bs128_w4_s1"
+                  ],
+                  "iteration_best_metric": 852.49,
+                  "best_so_far_metric": 852.49,
+                  "best_so_far_config_id": "bs128_w4_s1",
+                  "normalized_best": 0.6211,
+                  "regret": 520.06,
+                  "regret_pct": 37.8901,
+                  "reached_90pct_best": false
+                },
+                {
+                  "iteration": 2,
+                  "evaluated_config_ids": [
+                    "bs128_w2_s1"
+                  ],
+                  "iteration_best_metric": 205.8,
+                  "best_so_far_metric": 852.49,
+                  "best_so_far_config_id": "bs128_w4_s1",
+                  "normalized_best": 0.6211,
+                  "regret": 520.06,
+                  "regret_pct": 37.8901,
+                  "reached_90pct_best": false
+                },
+                {
+                  "iteration": 3,
+                  "evaluated_config_ids": [
+                    "bs128_w4_s2"
+                  ],
+                  "iteration_best_metric": 852.59,
+                  "best_so_far_metric": 852.59,
+                  "best_so_far_config_id": "bs128_w4_s2",
+                  "normalized_best": 0.6212,
+                  "regret": 519.96,
+                  "regret_pct": 37.8828,
+                  "reached_90pct_best": false
+                },
+                {
+                  "iteration": 4,
+                  "evaluated_config_ids": [
+                    "bs128_w8_s1"
+                  ],
+                  "iteration_best_metric": 1201.54,
+                  "best_so_far_metric": 1201.54,
+                  "best_so_far_config_id": "bs128_w8_s1",
+                  "normalized_best": 0.8754,
+                  "regret": 171.01,
+                  "regret_pct": 12.4593,
+                  "reached_90pct_best": false
+                },
+                {
+                  "iteration": 5,
+                  "evaluated_config_ids": [
+                    "bs128_w2_s2"
+                  ],
+                  "iteration_best_metric": 210.2,
+                  "best_so_far_metric": 1201.54,
+                  "best_so_far_config_id": "bs128_w8_s1",
+                  "normalized_best": 0.8754,
+                  "regret": 171.01,
+                  "regret_pct": 12.4593,
+                  "reached_90pct_best": false
+                },
+                {
+                  "iteration": 6,
+                  "evaluated_config_ids": [
+                    "bs128_w8_s2"
+                  ],
+                  "iteration_best_metric": 1193.75,
+                  "best_so_far_metric": 1201.54,
+                  "best_so_far_config_id": "bs128_w8_s1",
+                  "normalized_best": 0.8754,
+                  "regret": 171.01,
+                  "regret_pct": 12.4593,
+                  "reached_90pct_best": false
+                }
+              ]
+            },
+            {
+              "condition": "database_seeded",
+              "seed": 2,
+              "order": [
+                "bs128_w4_s1",
+                "bs128_w2_s1",
+                "bs128_w4_s2",
+                "bs128_w8_s1",
+                "bs128_w2_s2",
+                "bs128_w8_s2",
+                "bs128_w1_s1",
+                "bs128_w1_s2",
+                "bs128_w16_s1"
+              ],
+              "iterations_to_90pct_best": null,
+              "final_best_metric": 1201.54,
+              "final_best_config_id": "bs128_w8_s1",
+              "final_normalized_best": 0.8754,
+              "final_regret": 171.01,
+              "final_regret_pct": 12.4593,
+              "history": [
+                {
+                  "iteration": 1,
+                  "evaluated_config_ids": [
+                    "bs128_w4_s1"
+                  ],
+                  "iteration_best_metric": 852.49,
+                  "best_so_far_metric": 852.49,
+                  "best_so_far_config_id": "bs128_w4_s1",
+                  "normalized_best": 0.6211,
+                  "regret": 520.06,
+                  "regret_pct": 37.8901,
+                  "reached_90pct_best": false
+                },
+                {
+                  "iteration": 2,
+                  "evaluated_config_ids": [
+                    "bs128_w2_s1"
+                  ],
+                  "iteration_best_metric": 205.8,
+                  "best_so_far_metric": 852.49,
+                  "best_so_far_config_id": "bs128_w4_s1",
+                  "normalized_best": 0.6211,
+                  "regret": 520.06,
+                  "regret_pct": 37.8901,
+                  "reached_90pct_best": false
+                },
+                {
+                  "iteration": 3,
+                  "evaluated_config_ids": [
+                    "bs128_w4_s2"
+                  ],
+                  "iteration_best_metric": 852.59,
+                  "best_so_far_metric": 852.59,
+                  "best_so_far_config_id": "bs128_w4_s2",
+                  "normalized_best": 0.6212,
+                  "regret": 519.96,
+                  "regret_pct": 37.8828,
+                  "reached_90pct_best": false
+                },
+                {
+                  "iteration": 4,
+                  "evaluated_config_ids": [
+                    "bs128_w8_s1"
+                  ],
+                  "iteration_best_metric": 1201.54,
+                  "best_so_far_metric": 1201.54,
+                  "best_so_far_config_id": "bs128_w8_s1",
+                  "normalized_best": 0.8754,
+                  "regret": 171.01,
+                  "regret_pct": 12.4593,
+                  "reached_90pct_best": false
+                },
+                {
+                  "iteration": 5,
+                  "evaluated_config_ids": [
+                    "bs128_w2_s2"
+                  ],
+                  "iteration_best_metric": 210.2,
+                  "best_so_far_metric": 1201.54,
+                  "best_so_far_config_id": "bs128_w8_s1",
+                  "normalized_best": 0.8754,
+                  "regret": 171.01,
+                  "regret_pct": 12.4593,
+                  "reached_90pct_best": false
+                },
+                {
+                  "iteration": 6,
+                  "evaluated_config_ids": [
+                    "bs128_w8_s2"
+                  ],
+                  "iteration_best_metric": 1193.75,
+                  "best_so_far_metric": 1201.54,
+                  "best_so_far_config_id": "bs128_w8_s1",
+                  "normalized_best": 0.8754,
+                  "regret": 171.01,
+                  "regret_pct": 12.4593,
+                  "reached_90pct_best": false
+                }
+              ]
+            }
+          ]
+        },
+        "cost_model_ranking": {
+          "summary": {
+            "runs": 3,
+            "mean_final_metric": 1372.55,
+            "median_final_metric": 1372.55,
+            "mean_final_normalized_best": 1.0,
+            "median_final_normalized_best": 1.0,
+            "mean_final_regret": 0.0,
+            "mean_final_regret_pct": 0.0,
+            "median_iterations_to_90pct_best": 5.0,
+            "success_rate_90pct": 1.0
+          },
+          "runs": [
+            {
+              "condition": "cost_model_ranking",
+              "seed": 0,
+              "order": [
+                "bs128_w4_s1",
+                "bs128_w4_s2",
+                "bs128_w8_s1",
+                "bs128_w8_s2",
+                "bs128_w16_s1",
+                "bs128_w2_s1",
+                "bs128_w2_s2",
+                "bs128_w1_s2",
+                "bs128_w1_s1"
+              ],
+              "iterations_to_90pct_best": 5,
+              "final_best_metric": 1372.55,
+              "final_best_config_id": "bs128_w16_s1",
+              "final_normalized_best": 1.0,
+              "final_regret": 0.0,
+              "final_regret_pct": 0.0,
+              "history": [
+                {
+                  "iteration": 1,
+                  "evaluated_config_ids": [
+                    "bs128_w4_s1"
+                  ],
+                  "iteration_best_metric": 852.49,
+                  "best_so_far_metric": 852.49,
+                  "best_so_far_config_id": "bs128_w4_s1",
+                  "normalized_best": 0.6211,
+                  "regret": 520.06,
+                  "regret_pct": 37.8901,
+                  "reached_90pct_best": false
+                },
+                {
+                  "iteration": 2,
+                  "evaluated_config_ids": [
+                    "bs128_w4_s2"
+                  ],
+                  "iteration_best_metric": 852.59,
+                  "best_so_far_metric": 852.59,
+                  "best_so_far_config_id": "bs128_w4_s2",
+                  "normalized_best": 0.6212,
+                  "regret": 519.96,
+                  "regret_pct": 37.8828,
+                  "reached_90pct_best": false
+                },
+                {
+                  "iteration": 3,
+                  "evaluated_config_ids": [
+                    "bs128_w8_s1"
+                  ],
+                  "iteration_best_metric": 1201.54,
+                  "best_so_far_metric": 1201.54,
+                  "best_so_far_config_id": "bs128_w8_s1",
+                  "normalized_best": 0.8754,
+                  "regret": 171.01,
+                  "regret_pct": 12.4593,
+                  "reached_90pct_best": false
+                },
+                {
+                  "iteration": 4,
+                  "evaluated_config_ids": [
+                    "bs128_w8_s2"
+                  ],
+                  "iteration_best_metric": 1193.75,
+                  "best_so_far_metric": 1201.54,
+                  "best_so_far_config_id": "bs128_w8_s1",
+                  "normalized_best": 0.8754,
+                  "regret": 171.01,
+                  "regret_pct": 12.4593,
+                  "reached_90pct_best": false
+                },
+                {
+                  "iteration": 5,
+                  "evaluated_config_ids": [
+                    "bs128_w16_s1"
+                  ],
+                  "iteration_best_metric": 1372.55,
+                  "best_so_far_metric": 1372.55,
+                  "best_so_far_config_id": "bs128_w16_s1",
+                  "normalized_best": 1.0,
+                  "regret": 0.0,
+                  "regret_pct": 0.0,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 6,
+                  "evaluated_config_ids": [
+                    "bs128_w2_s1"
+                  ],
+                  "iteration_best_metric": 205.8,
+                  "best_so_far_metric": 1372.55,
+                  "best_so_far_config_id": "bs128_w16_s1",
+                  "normalized_best": 1.0,
+                  "regret": 0.0,
+                  "regret_pct": 0.0,
+                  "reached_90pct_best": true
+                }
+              ]
+            },
+            {
+              "condition": "cost_model_ranking",
+              "seed": 1,
+              "order": [
+                "bs128_w4_s1",
+                "bs128_w4_s2",
+                "bs128_w8_s1",
+                "bs128_w8_s2",
+                "bs128_w16_s1",
+                "bs128_w2_s1",
+                "bs128_w2_s2",
+                "bs128_w1_s2",
+                "bs128_w1_s1"
+              ],
+              "iterations_to_90pct_best": 5,
+              "final_best_metric": 1372.55,
+              "final_best_config_id": "bs128_w16_s1",
+              "final_normalized_best": 1.0,
+              "final_regret": 0.0,
+              "final_regret_pct": 0.0,
+              "history": [
+                {
+                  "iteration": 1,
+                  "evaluated_config_ids": [
+                    "bs128_w4_s1"
+                  ],
+                  "iteration_best_metric": 852.49,
+                  "best_so_far_metric": 852.49,
+                  "best_so_far_config_id": "bs128_w4_s1",
+                  "normalized_best": 0.6211,
+                  "regret": 520.06,
+                  "regret_pct": 37.8901,
+                  "reached_90pct_best": false
+                },
+                {
+                  "iteration": 2,
+                  "evaluated_config_ids": [
+                    "bs128_w4_s2"
+                  ],
+                  "iteration_best_metric": 852.59,
+                  "best_so_far_metric": 852.59,
+                  "best_so_far_config_id": "bs128_w4_s2",
+                  "normalized_best": 0.6212,
+                  "regret": 519.96,
+                  "regret_pct": 37.8828,
+                  "reached_90pct_best": false
+                },
+                {
+                  "iteration": 3,
+                  "evaluated_config_ids": [
+                    "bs128_w8_s1"
+                  ],
+                  "iteration_best_metric": 1201.54,
+                  "best_so_far_metric": 1201.54,
+                  "best_so_far_config_id": "bs128_w8_s1",
+                  "normalized_best": 0.8754,
+                  "regret": 171.01,
+                  "regret_pct": 12.4593,
+                  "reached_90pct_best": false
+                },
+                {
+                  "iteration": 4,
+                  "evaluated_config_ids": [
+                    "bs128_w8_s2"
+                  ],
+                  "iteration_best_metric": 1193.75,
+                  "best_so_far_metric": 1201.54,
+                  "best_so_far_config_id": "bs128_w8_s1",
+                  "normalized_best": 0.8754,
+                  "regret": 171.01,
+                  "regret_pct": 12.4593,
+                  "reached_90pct_best": false
+                },
+                {
+                  "iteration": 5,
+                  "evaluated_config_ids": [
+                    "bs128_w16_s1"
+                  ],
+                  "iteration_best_metric": 1372.55,
+                  "best_so_far_metric": 1372.55,
+                  "best_so_far_config_id": "bs128_w16_s1",
+                  "normalized_best": 1.0,
+                  "regret": 0.0,
+                  "regret_pct": 0.0,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 6,
+                  "evaluated_config_ids": [
+                    "bs128_w2_s1"
+                  ],
+                  "iteration_best_metric": 205.8,
+                  "best_so_far_metric": 1372.55,
+                  "best_so_far_config_id": "bs128_w16_s1",
+                  "normalized_best": 1.0,
+                  "regret": 0.0,
+                  "regret_pct": 0.0,
+                  "reached_90pct_best": true
+                }
+              ]
+            },
+            {
+              "condition": "cost_model_ranking",
+              "seed": 2,
+              "order": [
+                "bs128_w4_s1",
+                "bs128_w4_s2",
+                "bs128_w8_s1",
+                "bs128_w8_s2",
+                "bs128_w16_s1",
+                "bs128_w2_s1",
+                "bs128_w2_s2",
+                "bs128_w1_s2",
+                "bs128_w1_s1"
+              ],
+              "iterations_to_90pct_best": 5,
+              "final_best_metric": 1372.55,
+              "final_best_config_id": "bs128_w16_s1",
+              "final_normalized_best": 1.0,
+              "final_regret": 0.0,
+              "final_regret_pct": 0.0,
+              "history": [
+                {
+                  "iteration": 1,
+                  "evaluated_config_ids": [
+                    "bs128_w4_s1"
+                  ],
+                  "iteration_best_metric": 852.49,
+                  "best_so_far_metric": 852.49,
+                  "best_so_far_config_id": "bs128_w4_s1",
+                  "normalized_best": 0.6211,
+                  "regret": 520.06,
+                  "regret_pct": 37.8901,
+                  "reached_90pct_best": false
+                },
+                {
+                  "iteration": 2,
+                  "evaluated_config_ids": [
+                    "bs128_w4_s2"
+                  ],
+                  "iteration_best_metric": 852.59,
+                  "best_so_far_metric": 852.59,
+                  "best_so_far_config_id": "bs128_w4_s2",
+                  "normalized_best": 0.6212,
+                  "regret": 519.96,
+                  "regret_pct": 37.8828,
+                  "reached_90pct_best": false
+                },
+                {
+                  "iteration": 3,
+                  "evaluated_config_ids": [
+                    "bs128_w8_s1"
+                  ],
+                  "iteration_best_metric": 1201.54,
+                  "best_so_far_metric": 1201.54,
+                  "best_so_far_config_id": "bs128_w8_s1",
+                  "normalized_best": 0.8754,
+                  "regret": 171.01,
+                  "regret_pct": 12.4593,
+                  "reached_90pct_best": false
+                },
+                {
+                  "iteration": 4,
+                  "evaluated_config_ids": [
+                    "bs128_w8_s2"
+                  ],
+                  "iteration_best_metric": 1193.75,
+                  "best_so_far_metric": 1201.54,
+                  "best_so_far_config_id": "bs128_w8_s1",
+                  "normalized_best": 0.8754,
+                  "regret": 171.01,
+                  "regret_pct": 12.4593,
+                  "reached_90pct_best": false
+                },
+                {
+                  "iteration": 5,
+                  "evaluated_config_ids": [
+                    "bs128_w16_s1"
+                  ],
+                  "iteration_best_metric": 1372.55,
+                  "best_so_far_metric": 1372.55,
+                  "best_so_far_config_id": "bs128_w16_s1",
+                  "normalized_best": 1.0,
+                  "regret": 0.0,
+                  "regret_pct": 0.0,
+                  "reached_90pct_best": true
+                },
+                {
+                  "iteration": 6,
+                  "evaluated_config_ids": [
+                    "bs128_w2_s1"
+                  ],
+                  "iteration_best_metric": 205.8,
+                  "best_so_far_metric": 1372.55,
+                  "best_so_far_config_id": "bs128_w16_s1",
+                  "normalized_best": 1.0,
+                  "regret": 0.0,
+                  "regret_pct": 0.0,
+                  "reached_90pct_best": true
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }
+  }
+}

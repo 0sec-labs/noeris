@@ -261,6 +261,39 @@ The database's value compounds over many iterations, not within 5.
 
 **Experimental designs that would give the approach more room to show value:**
 
+We also ran a second-generation cold-shape replay that directly removes the
+two largest confounds: curated starters and warm target buckets. The v2 command
+holds out the largest measured bucket for each of `rmsnorm`, `softmax`,
+`layernorm`, and `cross_entropy`; removes curated configs from every condition;
+and replays 3 seeds × 6 iterations × 1 config per iteration over real measured
+A100 database rows.
+
+```bash
+python3 scripts/cold_shape_cross_run_ablation_v2.py
+```
+
+Artifacts:
+
+- `docs/results/cold-shape-cross-run-ablation-v2.json`
+- `docs/results/cold-shape-cross-run-ablation-v2.md`
+
+**Table 4b. Cold-shape replay ablation v2 (held-out buckets, curated configs removed)**
+
+| Condition | Mean final normalized best | Mean final regret | Median iter to 90% | 90% success |
+|---|---:|---:|---:|---:|
+| stateless_random | 0.9604 | 3.96% | 2.0 | 0.92 |
+| database_seeded | 0.9604 | 3.96% | 1.0 | 0.75 |
+| cost_model_ranking | **0.9971** | **0.29%** | 1.0 | **1.00** |
+
+The v2 replay still does not validate database seeding as a standalone
+compounding-learning effect. Database-seeded transfer reaches the 90% threshold
+faster when successful, but it has lower 90% success and slightly worse final
+regret than stateless random. The strongest result is the ranking condition,
+which uses the persistent database as supervised training data. We therefore
+frame the database as a replayable evidence store and ranking-model substrate,
+not as independent evidence that historical winners alone compound into better
+cold-shape search.
+
 1. **Weaker priors.** Remove curated configs and seed only from the systematic
    parameter grid. Without hand-picked starters, database historical winners
    should be significantly more valuable than random grid exploration.
@@ -274,13 +307,9 @@ The database's value compounds over many iterations, not within 5.
    likely to stumble on good configs in high-dimensional spaces, giving the
    database more leverage.
 
-4. **Cold novel shapes.** Test on shapes not seen in any previous run but
-   similar to shapes that are in the database. This isolates bucket-level
-   generalization: does the database produce better starting points for new
-   shapes than the curated starters alone?
-
-The framework fully supports all four experiments via the `ablation` and
-`triton-iterate` CLI commands. We leave them as explicit future work.
+4. **Cold novel shapes.** The v2 replay above covers this in an offline,
+   non-exhaustive setting; live GPU confirmation with more held-out buckets is
+   still needed before making a stronger standalone cross-run-learning claim.
 
 **Mitigation via the learned cost model.** The noise-floor problem is avoided
 by the learned cost model (§2.5), which operates at prediction time —

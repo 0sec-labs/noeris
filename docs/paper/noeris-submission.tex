@@ -579,7 +579,15 @@ outperform stateless proposals within the measurement noise floor. Matmul:
 $-2.16\%$; rmsnorm: $-1.25\%$---neither statistically significant, both within
 the ${\sim}$2--3\% GPU-runner noise floor. The negative result reflects the
 strength of curated starters, not evidence against persistent learning in
-principle.
+principle. A v2 cold-shape replay removes curated starters and holds out the
+largest measured buckets for rmsnorm, softmax, layernorm, and cross-entropy
+(\texttt{docs/results/cold-shape-cross-run-ablation-v2.json}). Database-seeded
+transfer reaches 90\% of oracle faster when successful, but does not improve
+final regret or success rate over stateless random; the best condition is
+cost-model ranking (0.997 mean final normalized throughput, 0.29\% mean regret).
+We therefore treat the persistent database as replayable training data and
+selector context, not standalone evidence of compounding gains from historical
+winners.
 
 
 \subsection{Cost Model Validation}
@@ -1070,7 +1078,8 @@ AutoKernel & LLM agent & None & No & No & No \\
 
 \begin{enumerate}[leftmargin=*,itemsep=2pt]
 \item \textbf{Cross-run learning ablation is negative} (\S\ref{sec:cross-run-ablation}).
-The claim rests on architecture, not yet on measured gains.
+The database is validated as replayable training data for ranking models, but
+standalone database-seeded compounding remains unproven.
 
 \item \textbf{Cost model ablation uses a weak baseline.} The
 \texttt{--no-curated} baseline is deliberately weakened.

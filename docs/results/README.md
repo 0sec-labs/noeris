@@ -97,6 +97,11 @@ and must not be cited as cross-vendor AMD transfer evidence:
 - `docs/results/cross-vendor-transfer-eval-sample.json`
 - `docs/results/cross-vendor-transfer-eval-sample.md`
 
+Cold-shape cross-run learning ablation v2:
+
+- `docs/results/cold-shape-cross-run-ablation-v2.json`
+- `docs/results/cold-shape-cross-run-ablation-v2.md`
+
 Kernel-aware NAS multi-hardware latency proxy:
 
 - `docs/results/kernel-aware-nas-multihardware.json`
