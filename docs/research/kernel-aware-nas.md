@@ -23,7 +23,7 @@ to choose model dimensions that the kernels execute efficiently.
   candidate space.
 - `scripts/nas_experiment.py --all-hardware` writes a deterministic
   A100/T4/H100 artifact pack with known models, seed candidates, generated
-  candidates, and a size-constrained latency ranking.
+  candidates, a size-constrained latency ranking, and grouped knob winners.
 
 Run:
 
@@ -42,7 +42,10 @@ The experiment can answer hardware-facing architecture questions such as:
 
 - which candidate has the lowest predicted layer latency on a target GPU;
 - which kernel dominates the layer latency for that candidate;
-- which generated head-dim / GQA / FFN-ratio / QK-norm candidates rank fastest;
+- which generated head-dim / GQA / FFN-ratio / QK-norm/RoPE branch candidates
+  rank fastest;
+- which constrained value wins for each architecture knob across A100, T4, and
+  H100 in the checked-in `knob_summary` block;
 - whether a hidden size, head size, or FFN size falls off the 128-wide tile
   boundary; and
 - whether the same ranking holds across A100, T4, and H100 profiles.
@@ -75,6 +78,9 @@ Proxy-only pieces:
   minimum hidden dimension, minimum `hidden_dim * ffn_dim` proxy, and an FFN
   ratio range. This prevents the search from simply choosing the smallest
   architecture, but it is not a learned quality model.
+- The norm-placement knob in this proxy is the QK-norm/RoPE branch. It does
+  not yet model full block-level norm variants such as pre-norm vs post-norm
+  training behavior.
 
 Still speculative:
 

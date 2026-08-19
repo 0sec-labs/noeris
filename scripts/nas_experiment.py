@@ -135,27 +135,29 @@ def generate_candidate_configs() -> list[dict]:
                 for ffn_ratio_label, ffn_ratio in (("4p0", 4.0), ("5p33", 16.0 / 3.0)):
                     ffn_dim = _round_to_multiple(hidden_dim * ffn_ratio, 128)
                     for window_size in (512, 1024):
-                        name = (
-                            f"gen_h{hidden_dim}_hd{head_dim}_gqa{kv_group}_"
-                            f"ffn{ffn_ratio_label}_w{window_size}"
-                        )
-                        if name in seen_names:
-                            continue
-                        seen_names.add(name)
-                        configs.append(
-                            {
-                                "name": name,
-                                "hidden_dim": hidden_dim,
-                                "num_heads": num_heads,
-                                "num_kv_heads": num_kv_heads,
-                                "head_dim": head_dim,
-                                "ffn_dim": ffn_dim,
-                                "seq_len": 2048,
-                                "batch_size": 1,
-                                "use_qk_norm": True,
-                                "window_size": window_size,
-                            }
-                        )
+                        for use_qk_norm in (True, False):
+                            norm_label = "qknorm" if use_qk_norm else "rope"
+                            name = (
+                                f"gen_h{hidden_dim}_hd{head_dim}_gqa{kv_group}_"
+                                f"ffn{ffn_ratio_label}_w{window_size}_{norm_label}"
+                            )
+                            if name in seen_names:
+                                continue
+                            seen_names.add(name)
+                            configs.append(
+                                {
+                                    "name": name,
+                                    "hidden_dim": hidden_dim,
+                                    "num_heads": num_heads,
+                                    "num_kv_heads": num_kv_heads,
+                                    "head_dim": head_dim,
+                                    "ffn_dim": ffn_dim,
+                                    "seq_len": 2048,
+                                    "batch_size": 1,
+                                    "use_qk_norm": use_qk_norm,
+                                    "window_size": window_size,
+                                }
+                            )
     return configs
 
 
@@ -259,6 +261,62 @@ def _rank_constrained(comparisons: list[dict]) -> list[dict]:
         }
         for index, row in enumerate(rows, start=1)
     ]
+
+
+def _window_label(value: int | None) -> int | str:
+    return value if value is not None else "full"
+
+
+def _gqa_group_size(config: dict) -> int:
+    return config["num_heads"] // config["num_kv_heads"]
+
+
+def _summarize_knob_groups(comparisons: list[dict]) -> dict[str, list[dict]]:
+    """Summarize which architecture knob values win within a candidate set."""
+    knob_accessors = {
+        "hidden_dim": lambda row: row["config"]["hidden_dim"],
+        "head_dim": lambda row: row["config"]["head_dim"],
+        "gqa_group_size": lambda row: _gqa_group_size(row["config"]),
+        "ffn_ratio": lambda row: row["constraints"]["ffn_ratio"],
+        "window_size": lambda row: _window_label(row["config"].get("window_size")),
+        "use_qk_norm": lambda row: row["config"].get("use_qk_norm", True),
+    }
+    summary: dict[str, list[dict]] = {}
+    for knob, accessor in knob_accessors.items():
+        grouped: dict[object, list[dict]] = {}
+        for row in comparisons:
+            grouped.setdefault(accessor(row), []).append(row)
+
+        knob_rows = []
+        for value, rows in grouped.items():
+            fastest = min(
+                rows,
+                key=lambda row: (row["total_ms"], -row["quality_proxy"], row["name"]),
+            )
+            knob_rows.append(
+                {
+                    "value": value,
+                    "candidate_count": len(rows),
+                    "fastest_config": fastest["name"],
+                    "fastest_total_ms": fastest["total_ms"],
+                    "median_total_ms": statistics.median(
+                        row["total_ms"] for row in rows
+                    ),
+                }
+            )
+        summary[knob] = sorted(
+            knob_rows,
+            key=lambda row: (row["fastest_total_ms"], str(row["value"])),
+        )
+    return summary
+
+
+def _knob_summary(comparisons: list[dict]) -> dict[str, dict[str, list[dict]]]:
+    constrained = [row for row in comparisons if row["constraints"]["passes"]]
+    return {
+        "all_candidates": _summarize_knob_groups(comparisons),
+        "quality_constrained": _summarize_knob_groups(constrained),
+    }
 
 
 def generated_candidate_configs() -> list[dict]:
@@ -376,6 +434,7 @@ def build_report(
             "ms_per_mparam_proxy": _ranking_rows(most_efficient),
             "quality_constrained_latency": constrained,
         },
+        "knob_summary": _knob_summary(comparisons),
         "generated_search": {
             "total_ms_top": _ranking_rows(generated_fastest[:25]),
             "ms_per_mparam_proxy_top": _ranking_rows(generated_efficient[:25]),
@@ -545,6 +604,27 @@ def render_multi_hardware_markdown(pack: dict) -> str:
         )
     lines.extend([
         "",
+        "## Architecture Knob Winners",
+        "",
+        "Quality-constrained group winners use the same size/capacity floor as the constrained ranking.",
+        "",
+        "| Hardware | knob | fastest value | fastest config | total ms | candidates |",
+        "|---|---|---|---|---:|---:|",
+    ])
+    for hardware in pack["hardware_profiles"]:
+        knob_summary = pack["reports"][hardware]["knob_summary"]["quality_constrained"]
+        for knob in ("head_dim", "gqa_group_size", "ffn_ratio", "window_size", "use_qk_norm"):
+            rows = knob_summary.get(knob, [])
+            if not rows:
+                continue
+            row = rows[0]
+            lines.append(
+                f"| {hardware.upper()} | {knob} | {_format_knob_value(knob, row['value'])} | "
+                f"{row['fastest_config']} | {row['fastest_total_ms']:.6f} | "
+                f"{row['candidate_count']} |"
+            )
+    lines.extend([
+        "",
         "## Constraints",
         "",
         f"- Minimum hidden dimension: `{pack['quality_constraints']['min_hidden_dim']}`",
@@ -558,6 +638,12 @@ def render_multi_hardware_markdown(pack: dict) -> str:
         lines.append(f"- {item}")
     lines.append("")
     return "\n".join(lines)
+
+
+def _format_knob_value(knob: str, value: object) -> str:
+    if knob == "use_qk_norm":
+        return "qk_norm_rope" if value else "rope_only"
+    return str(value)
 
 
 def run_comparison(model: ArchitectureCostModel) -> None:
