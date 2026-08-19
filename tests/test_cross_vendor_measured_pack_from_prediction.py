@@ -1,10 +1,28 @@
 from __future__ import annotations
 
+import importlib.util
+import io
 import json
-import subprocess
 import tempfile
 import unittest
+from contextlib import redirect_stdout
 from pathlib import Path
+
+
+REPO = Path(__file__).resolve().parent.parent
+
+
+def _load_script_module():
+    path = REPO / "scripts" / "cross_vendor_measured_pack_from_prediction.py"
+    spec = importlib.util.spec_from_file_location(
+        "cross_vendor_measured_pack_from_prediction",
+        path,
+    )
+    assert spec is not None
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(module)
+    return module
 
 
 class CrossVendorMeasuredPackFromPredictionTests(unittest.TestCase):
@@ -30,9 +48,8 @@ class CrossVendorMeasuredPackFromPredictionTests(unittest.TestCase):
                 ),
                 encoding="utf-8",
             )
-            cmd = [
-                "python3",
-                "scripts/cross_vendor_measured_pack_from_prediction.py",
+            module = _load_script_module()
+            argv = [
                 "--prediction-json",
                 str(pred),
                 "--output-json",
@@ -40,11 +57,19 @@ class CrossVendorMeasuredPackFromPredictionTests(unittest.TestCase):
                 "--top-k",
                 "2",
             ]
-            subprocess.run(cmd, check=True)
+            with redirect_stdout(io.StringIO()):
+                status = module.main(argv)
             data = json.loads(out.read_text(encoding="utf-8"))
+            self.assertEqual(status, 0)
+            self.assertEqual(data["artifact_type"], "cross_vendor_measured_template")
+            self.assertEqual(data["measurement_status"], "placeholder_not_measured")
+            self.assertFalse(data["is_measured_evidence"])
             rows = data["measured"]["attention"]["bucket_a"]
             self.assertEqual(len(rows), 2)
             self.assertEqual(rows[0]["config_id"], "c1")
+            self.assertEqual(rows[0]["metric"], 0.0)
+            self.assertEqual(rows[0]["latency_ms"], 0.0)
+            self.assertIn("placeholder", rows[0]["notes"])
 
 
 if __name__ == "__main__":

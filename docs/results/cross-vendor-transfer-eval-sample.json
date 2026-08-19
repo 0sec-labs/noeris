@@ -1,4 +1,8 @@
 {
+  "artifact_type": "cross_vendor_transfer_eval_sample",
+  "measurement_status": "sample_only_not_measured_amd_evidence",
+  "is_paper_evidence": false,
+  "note": "Historical dry-run against a measurement template; retained only to show report shape. Do not cite as AMD transfer evidence.",
   "generated_at_utc": "2026-05-07T17:44:11.750856+00:00",
   "prediction_artifact": "docs/results/cross-vendor-zero-shot-scaffold-mi300x-v2.json",
   "measured_artifact": "docs/results/cross-vendor-measured-mi300x-template.json",

@@ -4,6 +4,8 @@ Generated: 2026-04-21T07:22:17.189863+00:00
 
 Source hardware filter: `A100`
 Target hardware label: `AMD MI300X`
+Measurement status: `prediction_only_no_amd_measurements`
+Measured AMD evidence: `false`
 
 | Operator | Buckets with candidates | total candidates |
 |---|---:|---:|

@@ -81,10 +81,21 @@ KV cache quantize-on-write runtime integration:
 - `docs/results/kv-quant-write-runtime-integration.json`
 - `docs/results/kv-quant-write-runtime-integration.md`
 
-Cross-vendor zero-shot scaffold (MI300X label, no target measurements):
+Cross-vendor zero-shot scaffold (MI300X label, no target measurements; not
+paper-facing measured AMD evidence):
 
 - `docs/results/cross-vendor-zero-shot-scaffold-mi300x.json`
 - `docs/results/cross-vendor-zero-shot-scaffold-mi300x.md`
+- `docs/results/cross-vendor-zero-shot-scaffold-mi300x-v2.json`
+- `docs/results/cross-vendor-zero-shot-scaffold-mi300x-v2.md`
+- `docs/results/cross-vendor-measured-mi300x-template.json`
+
+The MI300X measured lane is deferred until real MI300X/MI250 hardware results
+are available. The historical dry-run artifacts below show report shape only
+and must not be cited as cross-vendor AMD transfer evidence:
+
+- `docs/results/cross-vendor-transfer-eval-sample.json`
+- `docs/results/cross-vendor-transfer-eval-sample.md`
 
 Kernel-aware NAS multi-hardware latency proxy:
 

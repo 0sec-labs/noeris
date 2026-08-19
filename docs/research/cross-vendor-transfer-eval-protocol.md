@@ -1,15 +1,21 @@
 # Cross-Vendor Transfer Evaluation Protocol
 
-This protocol defines how to validate issue #82 once AMD measurements are available.
+This protocol defines how to validate issue #82 once AMD measurements are
+available. Current repository status: AMD MI300X/MI250 hardware is unavailable
+in this lane, so the cross-vendor AMD result remains scaffold-only.
 
 ## Inputs
 
 - Prediction artifact from scaffold lane:
   - `docs/results/cross-vendor-zero-shot-scaffold-mi300x.json`
-- Measured AMD artifact (to be produced from MI300X/MI250 runs), format:
+- Optional measurement template, not evidence:
+  - `docs/results/cross-vendor-measured-mi300x-template.json`
+- Real measured AMD artifact, to be produced only from MI300X/MI250 runs:
+  - `docs/results/cross-vendor-measured-mi300x.json`
 
 ```json
 {
+  "is_measured_evidence": true,
   "measured": {
     "attention": {
       "bucket_name": [
@@ -20,7 +26,23 @@ This protocol defines how to validate issue #82 once AMD measurements are availa
 }
 ```
 
+The template is marked `is_measured_evidence=false` and uses placeholder
+metric/latency values. `scripts/cross_vendor_transfer_eval.py` rejects template,
+scaffold, deferred, sample, or non-positive measurement rows.
+
 ## Command
+
+Template generation:
+
+```bash
+PYTHONPATH=src python3 scripts/cross_vendor_measured_pack_from_prediction.py \
+  --prediction-json docs/results/cross-vendor-zero-shot-scaffold-mi300x.json \
+  --output-json docs/results/cross-vendor-measured-mi300x-template.json \
+  --top-k 5
+```
+
+Paper-facing evaluation, valid only after replacing the template with real AMD
+measurements in `docs/results/cross-vendor-measured-mi300x.json`:
 
 ```bash
 PYTHONPATH=src python3 scripts/cross_vendor_transfer_eval.py \
@@ -40,4 +62,6 @@ PYTHONPATH=src python3 scripts/cross_vendor_transfer_eval.py \
 - `docs/results/cross-vendor-transfer-eval.json`
 - `docs/results/cross-vendor-transfer-eval.md`
 
-These outputs are the paper-facing evidence for cross-vendor ranking transfer quality.
+These outputs are paper-facing evidence for cross-vendor ranking transfer
+quality only when produced from a validator-accepted real AMD measured artifact.
+Until then, public wording must describe the MI300X lane as scaffold-only.

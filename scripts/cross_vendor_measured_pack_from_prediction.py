@@ -5,10 +5,11 @@ from __future__ import annotations
 
 import argparse
 import json
+from datetime import datetime, timezone
 from pathlib import Path
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--prediction-json",
@@ -16,10 +17,10 @@ def main() -> int:
     )
     parser.add_argument(
         "--output-json",
-        default="docs/results/cross-vendor-measured-mi300x.json",
+        default="docs/results/cross-vendor-measured-mi300x-template.json",
     )
     parser.add_argument("--top-k", type=int, default=5)
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     prediction_path = Path(args.prediction_json)
     payload = json.loads(prediction_path.read_text(encoding="utf-8"))
@@ -39,7 +40,7 @@ def main() -> int:
                         "config_id": cid,
                         "metric": 0.0,
                         "latency_ms": 0.0,
-                        "notes": "fill with measured AMD result",
+                        "notes": "placeholder: replace with measured AMD metric and latency",
                     }
                 )
             if rows:
@@ -47,7 +48,18 @@ def main() -> int:
         measured[operator] = op_rows
 
     out = {
+        "artifact_type": "cross_vendor_measured_template",
+        "measurement_status": "placeholder_not_measured",
+        "is_measured_evidence": False,
+        "hardware_access": "deferred_no_amd_hardware_in_repo_context",
+        "generated_at_utc": datetime.now(timezone.utc).isoformat(),
         "generated_from_prediction": str(prediction_path),
+        "instructions": (
+            "Run the listed candidates on real MI300X/MI250 hardware, replace "
+            "placeholder metric/latency rows with positive measured values, "
+            "and save that as docs/results/cross-vendor-measured-mi300x.json "
+            "before running cross_vendor_transfer_eval.py for paper-facing claims."
+        ),
         "measured": measured,
     }
     out_path = Path(args.output_json)
