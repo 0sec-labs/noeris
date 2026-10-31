@@ -49,10 +49,12 @@ def patch(
 
     arch = detect_architecture(model)
     if arch is None:
+        from ._detect import _ARCH_REGISTRY
+        supported = ", ".join(sorted(_ARCH_REGISTRY.keys()))
         raise ValueError(
             f"noeris: unsupported model type "
             f"'{getattr(getattr(model, 'config', None), 'model_type', 'unknown')}'. "
-            f"Supported: gemma, gemma2, gemma3, llama, mistral, qwen2, qwen3, phi3, olmo2, falcon"
+            f"Supported: {supported}"
         )
 
     originals: dict[str, nn.Module | object] = {}

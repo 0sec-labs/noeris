@@ -69,6 +69,65 @@ class TestDetection:
         assert arch.affine_mode == 0
         assert arch.activation == "swiglu"
 
+    def test_detect_mixtral(self):
+        from noeris._detect import detect_architecture
+
+        class FakeConfig:
+            model_type = "mixtral"
+
+        class FakeModel:
+            config = FakeConfig()
+
+        arch = detect_architecture(FakeModel())
+        assert arch is not None
+        assert arch.model_type == "mixtral"
+        assert arch.has_qk_norm is False
+        assert arch.affine_mode == 0
+        assert arch.activation == "swiglu"
+        assert "MixtralRMSNorm" in arch.norm_classes
+
+    def test_detect_dbrx(self):
+        from noeris._detect import detect_architecture
+
+        class FakeConfig:
+            model_type = "dbrx"
+
+        class FakeModel:
+            config = FakeConfig()
+
+        arch = detect_architecture(FakeModel())
+        assert arch is not None
+        assert arch.model_type == "dbrx"
+        assert arch.activation == "swiglu"
+        assert "DbrxNorm" in arch.norm_classes
+
+    def test_detect_internlm(self):
+        from noeris._detect import detect_architecture
+
+        for mtype in ("internlm", "internlm2", "internlm3"):
+            class FakeConfig:
+                model_type = mtype
+
+            class FakeModel:
+                config = FakeConfig()
+
+            arch = detect_architecture(FakeModel())
+            assert arch is not None
+            assert arch.activation == "swiglu"
+
+    def test_detect_case_insensitive(self):
+        from noeris._detect import detect_architecture
+
+        for mtype in ("Llama", "LLaMA", "Mixtral", "DBRX"):
+            class FakeConfig:
+                model_type = mtype
+
+            class FakeModel:
+                config = FakeConfig()
+
+            arch = detect_architecture(FakeModel())
+            assert arch is not None
+
     def test_detect_unknown_returns_none(self):
         from noeris._detect import detect_architecture
 
@@ -90,6 +149,7 @@ class TestDetection:
 
 
 # ---- Public patch API surface tests (CPU-safe) ----
+
 
 class TestPatchPublicSurface:
     def test_patch_rejects_lower_level_kernels_as_drop_in_options(self):
