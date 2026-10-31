@@ -34,6 +34,7 @@ class LocalCiScriptTests(unittest.TestCase):
         output = result.stdout + result.stderr
         self.assertEqual(result.returncode, 0, output)
 
+    @unittest.skipIf(sys.platform == "win32", "ci_local.sh requires a POSIX shell environment")
     def test_dry_run_lists_ci_parity_commands(self) -> None:
         env = dict(os.environ)
         env["CI_LOCAL_DRY_RUN"] = "1"
