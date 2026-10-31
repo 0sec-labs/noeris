@@ -5,6 +5,7 @@ import importlib.util
 import io
 import json
 import subprocess
+import sys
 import tempfile
 import unittest
 from contextlib import redirect_stdout
@@ -327,7 +328,7 @@ class NasExperimentTests(unittest.TestCase):
             artifact = Path(temp_dir) / "nas-a100.json"
             result = subprocess.run(
                 [
-                    "python3",
+                    sys.executable,
                     str(REPO / "scripts" / "nas_experiment.py"),
                     "--hardware",
                     "a100",
@@ -367,7 +368,7 @@ class NasExperimentTests(unittest.TestCase):
             out_md = Path(temp_dir) / "nas-pack.md"
             result = subprocess.run(
                 [
-                    "python3",
+                    sys.executable,
                     str(REPO / "scripts" / "nas_experiment.py"),
                     "--all-hardware",
                     "--calibration-db",
