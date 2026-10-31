@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -17,7 +18,7 @@ class CheckHistoryRegressionsScriptTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             target = Path(temp_dir) / "history-regressions.json"
             result = subprocess.run(
-                ["python3", str(SCRIPT), "--path", str(target)],
+                [sys.executable, str(SCRIPT), "--path", str(target)],
                 cwd=REPO,
                 capture_output=True,
                 text=True,
@@ -41,7 +42,7 @@ class CheckHistoryRegressionsScriptTests(unittest.TestCase):
                 encoding="utf-8",
             )
             result = subprocess.run(
-                ["python3", str(SCRIPT), "--path", str(target), "--benchmark-id", "matmul-speedup"],
+                [sys.executable, str(SCRIPT), "--path", str(target), "--benchmark-id", "matmul-speedup"],
                 cwd=REPO,
                 capture_output=True,
                 text=True,
@@ -64,7 +65,7 @@ class CheckHistoryRegressionsScriptTests(unittest.TestCase):
                 encoding="utf-8",
             )
             result = subprocess.run(
-                ["python3", str(SCRIPT), "--path", str(target), "--benchmark-id", "matmul-speedup"],
+                [sys.executable, str(SCRIPT), "--path", str(target), "--benchmark-id", "matmul-speedup"],
                 cwd=REPO,
                 capture_output=True,
                 text=True,
@@ -99,7 +100,7 @@ class CheckHistoryRegressionsScriptTests(unittest.TestCase):
             )
             result = subprocess.run(
                 [
-                    "python3",
+                    sys.executable,
                     str(SCRIPT),
                     "--path",
                     str(regressions_path),
@@ -151,7 +152,7 @@ class CheckHistoryRegressionsScriptTests(unittest.TestCase):
             )
             result = subprocess.run(
                 [
-                    "python3",
+                    sys.executable,
                     str(SCRIPT),
                     "--path",
                     str(regressions_path),
