@@ -132,6 +132,33 @@ _ARCH_REGISTRY: dict[str, ArchInfo] = {
         attn_classes=["InternLM2Attention"],
         mlp_classes=["InternLM2MLP"],
     ),
+    "internlm": ArchInfo(
+        model_type="internlm",
+        has_qk_norm=False,
+        affine_mode=0,
+        activation="swiglu",
+        norm_classes=["InternLM2RMSNorm", "InternLMRMSNorm"],
+        attn_classes=["InternLM2Attention", "InternLMAttention"],
+        mlp_classes=["InternLM2MLP", "InternLMMLP"],
+    ),
+    "mixtral": ArchInfo(
+        model_type="mixtral",
+        has_qk_norm=False,
+        affine_mode=0,
+        activation="swiglu",
+        norm_classes=["MixtralRMSNorm"],
+        attn_classes=["MixtralAttention", "MixtralSdpaAttention", "MixtralFlashAttention2"],
+        mlp_classes=["MixtralSparseMoeBlock", "MixtralBlockSparseTop2MLP"],
+    ),
+    "dbrx": ArchInfo(
+        model_type="dbrx",
+        has_qk_norm=False,
+        affine_mode=0,
+        activation="swiglu",
+        norm_classes=["DbrxNorm"],
+        attn_classes=["DbrxAttention", "DbrxFlashAttention2"],
+        mlp_classes=["DbrxExpertGLU"],
+    ),
 }
 
 
@@ -142,6 +169,9 @@ def detect_architecture(model) -> ArchInfo | None:
         return None
 
     model_type = getattr(config, "model_type", "")
+    if not isinstance(model_type, str):
+        return None
+    model_type = model_type.lower()
 
     # Direct match
     if model_type in _ARCH_REGISTRY:
@@ -153,3 +183,4 @@ def detect_architecture(model) -> ArchInfo | None:
             return arch
 
     return None
+
