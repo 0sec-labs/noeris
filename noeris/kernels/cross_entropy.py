@@ -54,8 +54,19 @@ def cross_entropy_forward(logits, targets):
     import torch
     import triton
 
-    _ensure_compiled()
     n_rows, n_cols = logits.shape
+    if targets.shape != (n_rows,):
+        raise ValueError(f"targets must have shape ({n_rows},)")
+    if targets.dtype != torch.int64:
+        raise TypeError("targets must have dtype torch.int64")
+    if targets.device != logits.device:
+        raise ValueError("targets and logits must be on the same device")
+    if n_cols <= 0:
+        raise ValueError("logits must have at least one column")
+    if n_rows and torch.any((targets < 0) | (targets >= n_cols)).item():
+        raise ValueError(f"targets must be in [0, {n_cols})")
+
+    _ensure_compiled()
     loss = torch.empty((n_rows,), device=logits.device, dtype=torch.float32)
     BLOCK_SIZE = triton.next_power_of_2(n_cols)
     _kernel[(n_rows,)](
